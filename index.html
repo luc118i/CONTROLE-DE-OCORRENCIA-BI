@@ -1,0 +1,3571 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BI Operacional · Viação Catedral</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <style>
+      /* ── CATEDRAL DESIGN SYSTEM ─────────────────────────────── */
+      :root {
+        --preto: #0a0a0a;
+        --preto2: #111111;
+        --preto3: #1a1a1a;
+        --preto4: #242424;
+        --laranja: #f47920;
+        --laranja2: #e06510;
+        --laranja3: rgba(244, 121, 32, 0.15);
+        --laranja4: rgba(244, 121, 32, 0.08);
+        --cinza: #2e2e2e;
+        --cinza2: #3d3d3d;
+        --cinza3: #555555;
+        --borda: rgba(255, 255, 255, 0.07);
+        --borda2: rgba(255, 255, 255, 0.12);
+        --borda-l: rgba(244, 121, 32, 0.3);
+        --texto: #f0f0f0;
+        --texto2: #aaaaaa;
+        --texto3: #666666;
+        --verde: #22c97a;
+        --vermelho: #e05050;
+        --amarelo: #f0c040;
+        --radius: 10px;
+        --radius-sm: 6px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Barlow", sans-serif;
+        background: var(--preto);
+        color: var(--texto);
+        min-height: 100vh;
+      }
+
+      /* ── TOPO COM FAIXA LARANJA ─────────────────────────── */
+      .topbar {
+        background: var(--laranja);
+        height: 4px;
+        width: 100%;
+      }
+
+      /* ── HEADER ─────────────────────────────────────────── */
+      .header {
+        background: var(--preto2);
+        border-bottom: 1px solid var(--borda2);
+        padding: 18px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .header-logo {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .logo-icon {
+        width: 44px;
+        height: 44px;
+        background: var(--laranja);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .logo-icon svg {
+        width: 26px;
+        height: 26px;
+        fill: #fff;
+      }
+      .logo-text h1 {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--texto);
+        line-height: 1;
+      }
+      .logo-text h1 span {
+        color: var(--laranja);
+      }
+      .logo-text p {
+        font-size: 11px;
+        color: var(--texto3);
+        margin-top: 3px;
+        letter-spacing: 0.02em;
+      }
+      .header-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .badge-pill {
+        font-size: 11px;
+        padding: 5px 13px;
+        border-radius: 20px;
+        font-weight: 500;
+        border: 1px solid;
+        letter-spacing: 0.02em;
+      }
+      .pill-loading {
+        background: rgba(240, 192, 64, 0.1);
+        border-color: rgba(240, 192, 64, 0.35);
+        color: var(--amarelo);
+      }
+      .pill-ok {
+        background: rgba(34, 201, 122, 0.1);
+        border-color: rgba(34, 201, 122, 0.35);
+        color: var(--verde);
+      }
+      .pill-err {
+        background: rgba(224, 80, 80, 0.1);
+        border-color: rgba(224, 80, 80, 0.35);
+        color: var(--vermelho);
+      }
+      #subheader {
+        font-size: 11px;
+        color: var(--texto3);
+      }
+
+      /* ── FILTROS ─────────────────────────────────────────── */
+      .filter-wrap {
+        background: var(--preto2);
+        border-bottom: 1px solid var(--borda);
+        padding: 16px 28px;
+      }
+      .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-end;
+        max-width: 1200px;
+      }
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        flex: 1;
+        min-width: 130px;
+      }
+      .filter-group label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--texto3);
+        font-weight: 600;
+      }
+      .filter-group input[type="date"],
+      .filter-group select {
+        background: var(--preto3);
+        border: 1px solid var(--cinza2);
+        border-radius: var(--radius-sm);
+        color: var(--texto);
+        font-family: "Barlow", sans-serif;
+        font-size: 13px;
+        padding: 9px 12px;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        padding-right: 28px;
+      }
+      .filter-group input[type="date"] {
+        background-image: none;
+        padding-right: 12px;
+        color-scheme: dark;
+      }
+      .filter-group input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.6) sepia(1) saturate(3) hue-rotate(330deg);
+        cursor: pointer;
+      }
+      .filter-group input:focus,
+      .filter-group select:focus {
+        border-color: var(--laranja);
+        background: var(--preto4);
+      }
+      .filter-group select option {
+        background: var(--preto3);
+        color: var(--texto);
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 8px;
+        align-self: flex-end;
+        flex-shrink: 0;
+      }
+      .btn {
+        font-family: "Barlow", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 9px 20px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+        letter-spacing: 0.02em;
+      }
+      .btn-primary {
+        background: var(--laranja);
+        color: #fff;
+        border-color: var(--laranja);
+      }
+      .btn-primary:hover {
+        background: var(--laranja2);
+      }
+      .btn-primary:active {
+        transform: scale(0.97);
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--texto2);
+        border-color: var(--cinza2);
+      }
+      .btn-ghost:hover {
+        border-color: var(--texto2);
+        color: var(--texto);
+      }
+
+      /* ── CONTEÚDO PRINCIPAL ──────────────────────────────── */
+      .main {
+        padding: 24px 28px 40px;
+        max-width: 1400px;
+      }
+
+      /* ── KPIs ────────────────────────────────────────────── */
+      .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .kpi {
+        background: var(--preto2);
+        border: 1px solid var(--borda);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.2s;
+      }
+      .kpi:hover {
+        border-color: var(--borda-l);
+      }
+      .kpi-stripe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--kpi-c, var(--laranja));
+      }
+      .kpi-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--texto3);
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .kpi-value {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--kpi-c, var(--texto));
+        letter-spacing: -0.01em;
+        line-height: 1;
+      }
+      .kpi-sub {
+        font-size: 11px;
+        color: var(--texto3);
+        margin-top: 6px;
+      }
+
+      /* ── CARDS ───────────────────────────────────────────── */
+      .row2 {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .row3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .row4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .card {
+        background: var(--preto2);
+        border: 1px solid var(--borda);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        transition: border-color 0.2s;
+      }
+      .card:hover {
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+      .card-title {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--texto3);
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .card-title::before {
+        content: "";
+        display: inline-block;
+        width: 3px;
+        height: 12px;
+        background: var(--laranja);
+        border-radius: 2px;
+      }
+      .chart-wrap {
+        position: relative;
+        width: 100%;
+      }
+
+      /* ── LEGEND ──────────────────────────────────────────── */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .li {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: var(--texto2);
+      }
+      .ld {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+
+      /* ── RANK LIST ───────────────────────────────────────── */
+      .rank-list {
+        list-style: none;
+      }
+      .rank-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--borda);
+        font-size: 12px;
+      }
+      .rank-item:last-child {
+        border-bottom: none;
+      }
+      .rank-pos {
+        font-size: 10px;
+        color: var(--texto3);
+        font-weight: 700;
+        min-width: 20px;
+      }
+      .rank-name {
+        flex: 1;
+        color: var(--texto);
+      }
+      .rank-bar-bg {
+        width: 70px;
+        height: 4px;
+        background: var(--cinza);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .rank-bar {
+        height: 4px;
+        border-radius: 2px;
+        transition: width 0.5s ease;
+      }
+      .rank-val {
+        font-size: 11px;
+        color: var(--texto3);
+        min-width: 30px;
+        text-align: right;
+        font-weight: 600;
+      }
+
+      /* ── ALERT ROWS ──────────────────────────────────────── */
+      .alert-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--borda);
+        font-size: 12px;
+        color: var(--texto2);
+      }
+      .alert-row:last-of-type {
+        border-bottom: none;
+      }
+
+      /* ── BADGES ──────────────────────────────────────────── */
+      .badge {
+        font-size: 10px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 700;
+        border: 1px solid;
+        letter-spacing: 0.03em;
+      }
+      .b-red {
+        background: rgba(224, 80, 80, 0.12);
+        color: #f08080;
+        border-color: rgba(224, 80, 80, 0.3);
+      }
+      .b-amber {
+        background: rgba(240, 192, 64, 0.12);
+        color: var(--amarelo);
+        border-color: rgba(240, 192, 64, 0.3);
+      }
+      .b-orange {
+        background: rgba(244, 121, 32, 0.12);
+        color: var(--laranja);
+        border-color: rgba(244, 121, 32, 0.3);
+      }
+      .b-green {
+        background: rgba(34, 201, 122, 0.12);
+        color: var(--verde);
+        border-color: rgba(34, 201, 122, 0.3);
+      }
+
+      /* ── DOCS TABLE ──────────────────────────────────────── */
+      .docs-wrap {
+        overflow-x: auto;
+        margin-top: 4px;
+      }
+      .docs-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .docs-table th {
+        text-align: left;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--texto3);
+        font-weight: 700;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--borda2);
+      }
+      .docs-table td {
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--borda);
+        color: var(--texto2);
+        vertical-align: middle;
+      }
+      .docs-table tr:last-child td {
+        border-bottom: none;
+      }
+      .docs-table tr:hover td {
+        background: var(--preto3);
+      }
+      .doc-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--laranja);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(244, 121, 32, 0.3);
+        background: rgba(244, 121, 32, 0.08);
+        transition: background 0.15s;
+      }
+      .doc-link:hover {
+        background: rgba(244, 121, 32, 0.18);
+      }
+      .doc-link svg {
+        width: 12px;
+        height: 12px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .no-doc {
+        color: var(--texto3);
+        font-size: 11px;
+      }
+      .btn-buscar-doc {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-family: "Barlow", sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 4px;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--texto2);
+        transition: all 0.15s;
+      }
+      .btn-buscar-doc:hover {
+        border-color: var(--laranja);
+        color: var(--laranja);
+        background: rgba(244, 121, 32, 0.06);
+      }
+      .btn-buscar-doc:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .btn-buscar-doc svg {
+        width: 11px;
+        height: 11px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+      }
+
+      /* ── INSIGHT BOX ─────────────────────────────────────── */
+      .insight {
+        background: rgba(244, 121, 32, 0.06);
+        border-left: 3px solid var(--laranja);
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        padding: 10px 14px;
+        font-size: 11.5px;
+        color: rgba(244, 121, 32, 0.85);
+        line-height: 1.7;
+        margin-top: 10px;
+      }
+      .insight strong {
+        color: var(--laranja);
+        font-weight: 600;
+      }
+
+      /* ── RECS ────────────────────────────────────────────── */
+      .recs {
+        background: var(--preto2);
+        border: 1px solid rgba(244, 121, 32, 0.2);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        margin-top: 10px;
+      }
+      .recs-title {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--laranja);
+        font-weight: 700;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .recs-title::before {
+        content: "";
+        display: inline-block;
+        width: 3px;
+        height: 12px;
+        background: var(--laranja);
+        border-radius: 2px;
+      }
+      .recs-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .rec-item {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .rec-num {
+        font-size: 10px;
+        color: var(--laranja);
+        font-weight: 700;
+        background: rgba(244, 121, 32, 0.1);
+        border: 1px solid rgba(244, 121, 32, 0.25);
+        border-radius: 4px;
+        padding: 3px 8px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .rec-text {
+        font-size: 12px;
+        color: var(--texto2);
+        line-height: 1.65;
+      }
+      .rec-text strong {
+        color: var(--texto);
+        font-weight: 600;
+      }
+
+      /* ── FOOTER ──────────────────────────────────────────── */
+      footer {
+        background: var(--preto2);
+        border-top: 1px solid var(--borda2);
+        padding: 20px 28px;
+        margin-top: 8px;
+      }
+      .footer-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .footer-left {
+        font-size: 11px;
+        color: var(--texto3);
+        line-height: 1.7;
+      }
+      .footer-left strong {
+        color: var(--texto2);
+        font-weight: 600;
+      }
+      .footer-left .footer-brand {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--laranja);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .footer-right {
+        font-size: 10px;
+        color: var(--texto3);
+        text-align: right;
+        line-height: 1.6;
+      }
+      .footer-divider {
+        height: 1px;
+        background: var(--borda);
+        margin: 12px 0;
+      }
+      .footer-copy {
+        font-size: 10px;
+        color: var(--texto3);
+        text-align: center;
+        letter-spacing: 0.03em;
+      }
+      .footer-copy span {
+        color: var(--laranja);
+        font-weight: 600;
+      }
+
+      /* ── VIEWS ESPECIALIZADAS ────────────────────────────── */
+      .sv-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      .sv-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border: 1px solid;
+      }
+      .sv-total {
+        font-size: 13px;
+        color: var(--texto3);
+      }
+      .sv-kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .sv-row2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .sv-row3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .sv-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .sv-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .sv-table th {
+        text-align: left;
+        padding: 8px 12px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--texto3);
+        border-bottom: 1px solid var(--borda2);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .sv-table td {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--borda);
+        color: var(--texto2);
+        vertical-align: middle;
+      }
+      .sv-table tr:hover td { background: rgba(255,255,255,0.02); }
+      .sv-table tr:last-child td { border-bottom: none; }
+      .sv-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 600;
+        background: rgba(244,121,32,0.12);
+        color: var(--laranja);
+        letter-spacing: 0.03em;
+      }
+
+      /* ── MODAL REGISTRO ──────────────────────────────────── */
+      .modal-reg {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+      }
+      .modal-reg-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+      }
+      .modal-reg-content {
+        position: relative;
+        width: calc(100vw - 48px);
+        max-width: 1200px;
+        max-height: 90vh;
+        margin: 32px auto;
+        background: #111;
+        border-radius: 10px;
+        border: 1px solid var(--borda2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .modal-reg-header {
+        padding: 14px 20px;
+        background: var(--preto2);
+        border-bottom: 1px solid var(--borda);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .modal-reg-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 18px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--texto2);
+      }
+      .modal-reg-title span { color: var(--laranja); margin-left: 6px; }
+      .modal-reg-body {
+        flex: 1;
+        overflow: auto;
+        padding: 16px 20px;
+      }
+      .reg-table-wrap { overflow-x: auto; margin-bottom: 16px; }
+      .reg-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        min-width: 900px;
+      }
+      .reg-table th {
+        background: var(--preto3);
+        color: var(--texto3);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        padding: 8px 10px;
+        text-align: left;
+        white-space: nowrap;
+        border-bottom: 1px solid var(--borda2);
+      }
+      .reg-table td {
+        padding: 6px 6px;
+        border-bottom: 1px solid var(--borda);
+        vertical-align: middle;
+      }
+      .reg-table input,
+      .reg-table select {
+        width: 100%;
+        background: var(--preto3);
+        border: 1px solid var(--cinza2);
+        border-radius: 4px;
+        color: var(--texto);
+        font-family: "Barlow", sans-serif;
+        font-size: 12px;
+        padding: 5px 8px;
+        outline: none;
+      }
+      .reg-table input:focus,
+      .reg-table select:focus { border-color: var(--laranja); }
+      .reg-table input[type="date"] { min-width: 120px; }
+      .reg-td-det input { min-width: 200px; }
+      .reg-td-obs input { min-width: 150px; }
+      .btn-rem-row {
+        background: transparent;
+        border: 1px solid var(--cinza2);
+        color: var(--texto3);
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 13px;
+        line-height: 1;
+      }
+      .btn-rem-row:hover { border-color: var(--vermelho); color: var(--vermelho); }
+      .reg-footer {
+        padding: 14px 20px;
+        border-top: 1px solid var(--borda);
+        background: var(--preto2);
+        flex-shrink: 0;
+      }
+      .reg-cco-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .reg-cco-row label {
+        font-size: 11px;
+        color: var(--texto3);
+        white-space: nowrap;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .reg-cco-row input {
+        flex: 1;
+        max-width: 320px;
+        background: var(--preto3);
+        border: 1px solid var(--cinza2);
+        border-radius: 4px;
+        color: var(--texto);
+        font-family: "Barlow", sans-serif;
+        font-size: 13px;
+        padding: 6px 10px;
+        outline: none;
+      }
+      .reg-cco-row input:focus { border-color: var(--laranja); }
+      .reg-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .btn-add-row {
+        background: transparent;
+        border: 1px dashed var(--borda2);
+        color: var(--texto3);
+        border-radius: 6px;
+        padding: 6px 16px;
+        font-size: 12px;
+        cursor: pointer;
+        font-family: "Barlow", sans-serif;
+        transition: all .2s;
+      }
+      .btn-add-row:hover { border-color: var(--laranja); color: var(--laranja); }
+      .reg-status-badge {
+        display: inline-block;
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-weight: 600;
+      }
+
+      /* ── RESPONSIVE ──────────────────────────────────────── */
+
+      /* Tablet (≤ 960px) */
+      @media (max-width: 960px) {
+        .kpi-row {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .row2 {
+          grid-template-columns: 1fr;
+        }
+        .row3 {
+          grid-template-columns: 1fr 1fr;
+        }
+        .row4,
+        .recs-grid {
+          grid-template-columns: 1fr;
+        }
+        .main {
+          padding: 16px;
+        }
+      }
+
+      /* Mobile (≤ 600px) */
+      @media (max-width: 600px) {
+        .kpi-row {
+          grid-template-columns: 1fr 1fr;
+        }
+        .row2,
+        .row3,
+        .row4,
+        .recs-grid,
+        .sv-kpi-row,
+        .sv-row2,
+        .sv-row3 {
+          grid-template-columns: 1fr;
+        }
+        .header {
+          padding: 12px 16px;
+          gap: 10px;
+        }
+        .header-logo {
+          gap: 10px;
+        }
+        .logo-icon {
+          width: 36px;
+          height: 36px;
+        }
+        .logo-text h1 {
+          font-size: 16px;
+        }
+        .header-meta {
+          width: 100%;
+          justify-content: flex-start;
+        }
+        .filter-wrap {
+          padding: 12px 16px;
+        }
+        .filter-bar {
+          gap: 8px;
+        }
+        .filter-group {
+          min-width: calc(50% - 4px);
+          flex: 1 1 calc(50% - 4px);
+        }
+        .main {
+          padding: 12px;
+        }
+        .kpi-value {
+          font-size: 26px;
+        }
+        .card {
+          padding: 14px 14px;
+        }
+        .btn-apres-texto {
+          display: none;
+        }
+        /* tabela com scroll horizontal no mobile */
+        .docs-table {
+          display: block;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+      }
+
+      /* Combos filtráveis */
+      .combo {
+        position: relative;
+      }
+      .combo input {
+        width: 100%;
+        background: var(--preto3);
+        border: 1px solid var(--cinza2);
+        border-radius: var(--radius-sm);
+        color: var(--texto);
+        font-family: "Barlow", sans-serif;
+        font-size: 13px;
+        padding: 9px 12px;
+        outline: none;
+      }
+      .combo input:focus {
+        border-color: var(--laranja);
+        background: var(--preto4);
+      }
+      .combo-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 220px;
+        overflow-y: auto;
+        background: var(--preto3);
+        border: 1px solid var(--borda);
+        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+        z-index: 20;
+        display: none;
+      }
+      .combo-item {
+        padding: 6px 10px;
+        font-size: 12px;
+        color: var(--texto2);
+        cursor: pointer;
+      }
+      .combo-item:hover {
+        background: var(--preto4);
+        color: var(--texto);
+      }
+      .combo-item-all {
+        font-weight: 600;
+        color: var(--laranja);
+      }
+
+      /* Select customizado */
+      .select-wrapper {
+        position: relative;
+        width: 100%;
+      }
+      .select-display {
+        background: var(--preto3);
+        border: 1px solid var(--cinza2);
+        border-radius: var(--radius-sm);
+        color: var(--texto2);
+        font-family: "Barlow", sans-serif;
+        font-size: 13px;
+        padding: 9px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition:
+          border-color 0.15s,
+          background 0.15s,
+          color 0.15s;
+      }
+      .select-display::after {
+        content: "";
+        width: 10px;
+        height: 6px;
+        margin-left: 10px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23f47920' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        flex-shrink: 0;
+      }
+      .select-wrapper.open .select-display {
+        border-color: var(--laranja);
+        background: var(--preto4);
+        color: var(--texto);
+      }
+      .select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 3px;
+        background: var(--preto3);
+        border: 1px solid var(--borda2);
+        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+        max-height: 260px;
+        overflow-y: auto;
+        z-index: 30;
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.55);
+        display: none;
+      }
+      .select-wrapper.open .select-dropdown {
+        display: block;
+      }
+      .select-option {
+        padding: 7px 12px;
+        font-size: 12px;
+        color: var(--texto2);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .select-option:hover {
+        background: var(--preto4);
+        color: var(--texto);
+      }
+      .select-option.selected {
+        background: rgba(244, 121, 32, 0.12);
+        color: var(--laranja);
+      }
+      .select-option-all {
+        font-weight: 600;
+        color: var(--laranja);
+      }
+
+      /* Modal veículo crítico */
+      .modal-veiculo {
+        display: none; /* controlado via JS */
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+      }
+
+      .modal-veiculo-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+      }
+
+      .modal-veiculo-content {
+        position: relative;
+        max-width: 960px;
+        max-height: 80vh;
+        margin: 40px auto;
+        background: #111;
+        border-radius: 10px;
+        border: 1px solid var(--borda2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .modal-veiculo-header {
+        padding: 14px 18px;
+        background: var(--preto2);
+        border-bottom: 1px solid var(--borda);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .modal-veiculo-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 18px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--texto2);
+      }
+
+      .modal-veiculo-title span {
+        color: var(--laranja);
+        margin-left: 6px;
+        font-size: 20px;
+      }
+
+      .modal-veiculo-sub {
+        font-size: 11px;
+        color: var(--texto3);
+        margin-top: 3px;
+      }
+
+      .modal-veiculo-close {
+        background: transparent;
+        border: none;
+        color: var(--texto2);
+        font-size: 20px;
+        cursor: pointer;
+        padding: 4px 6px;
+        border-radius: 4px;
+      }
+
+      .modal-veiculo-close:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--texto);
+      }
+
+      .modal-veiculo-body {
+        padding: 10px 16px 16px;
+        overflow: auto;
+      }
+
+      .modal-veiculo-table td:nth-child(3) {
+        max-width: 260px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Botão de modo apresentação — estilo principal */
+      .btn-modo-apresentacao {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 999px;
+        border: 1px solid rgba(249, 115, 22, 0.45); /* laranja */
+        background: radial-gradient(
+          circle at 0% 0%,
+          rgba(249, 115, 22, 0.18),
+          rgba(15, 23, 42, 0.96)
+        );
+        color: #f9fafb;
+        font-family:
+          "DM Sans",
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 600;
+        cursor: pointer;
+        overflow: hidden;
+        isolation: isolate;
+        transition:
+          border-color 0.2s ease,
+          background 0.2s ease,
+          transform 0.15s ease,
+          box-shadow 0.2s ease;
+      }
+
+      /* Ícone de "play" / slides */
+      .btn-modo-apresentacao-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        background: rgba(15, 23, 42, 0.9);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.5);
+      }
+
+      .btn-modo-apresentacao-icon svg {
+        width: 10px;
+        height: 10px;
+        fill: #f97316; /* laranja */
+      }
+
+      /* “Brilho” animado passando por trás do texto */
+      .btn-modo-apresentacao::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          120deg,
+          transparent 0%,
+          rgba(249, 115, 22, 0.45) 40%,
+          rgba(249, 115, 22, 0.9) 50%,
+          rgba(249, 115, 22, 0.45) 60%,
+          transparent 100%
+        );
+        opacity: 0;
+        transform: translateX(-120%);
+        pointer-events: none;
+        mix-blend-mode: screen;
+        transition: opacity 0.3s ease;
+      }
+
+      /* Linha “scan” em baixo, tipo barra de progresso */
+      .btn-modo-apresentacao::after {
+        content: "";
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        bottom: 3px;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent, #f97316, transparent);
+        opacity: 0.4;
+        transform-origin: left;
+        transform: scaleX(0);
+        animation: btnApresentacaoScan 2.4s infinite ease-out;
+      }
+
+      /* Hover / foco */
+      .btn-modo-apresentacao:hover {
+        border-color: #f97316;
+        background: radial-gradient(
+          circle at 0% 0%,
+          rgba(249, 115, 22, 0.32),
+          rgba(15, 23, 42, 0.96)
+        );
+        transform: translateY(-1px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+      }
+
+      .btn-modo-apresentacao:hover::before {
+        opacity: 1;
+        animation: btnApresentacaoShine 1.4s forwards;
+      }
+
+      .btn-modo-apresentacao:active {
+        transform: translateY(0);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      }
+
+      /* Animação do brilho passando */
+      @keyframes btnApresentacaoShine {
+        0% {
+          transform: translateX(-130%);
+        }
+        100% {
+          transform: translateX(130%);
+        }
+      }
+
+      /* Animação da barrinha inferior (loop leve) */
+      @keyframes btnApresentacaoScan {
+        0% {
+          transform: scaleX(0);
+          opacity: 0;
+        }
+        15% {
+          transform: scaleX(1);
+          opacity: 0.8;
+        }
+        100% {
+          transform: scaleX(0);
+          opacity: 0;
+        }
+      }
+
+      /* Se quiser usar com tema claro em algum lugar */
+      .btn-modo-apresentacao--light {
+        background: radial-gradient(
+          circle at 0% 0%,
+          rgba(249, 115, 22, 0.12),
+          #f9fafb
+        );
+        color: #111827;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar"></div>
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-logo">
+        <div class="logo-icon">
+          <!-- ícone de ônibus SVG -->
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M17 20H7v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-1H3a1 1 0 01-1-1V7c0-2.21 3.58-4 8-4s8 1.79 8 4v12a1 1 0 01-1 1h-1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1zM4 13h16v-3H4v3zm0 2v3h16v-3H4zM4 9h16V7c0-.93-2.67-2-6-2H9C5.67 5 4 6.07 4 7v2zm4.5 5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm7 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"
+            />
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1>Viação <span>Catedral</span></h1>
+          <p id="subheader">Carregando dados da planilha...</p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div id="badgeStatus" class="badge-pill pill-loading">
+          ⏳ Carregando
+        </div>
+      </div>
+    </header>
+
+    <!-- FILTROS -->
+    <div class="filter-wrap">
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Data inicial</label>
+          <input type="date" id="fDataIni" />
+        </div>
+        <div class="filter-group">
+          <label>Data final</label>
+          <input type="date" id="fDataFim" />
+        </div>
+        <div class="filter-group">
+          <label>Tipo de ocorrência</label>
+          <div class="combo">
+            <input
+              type="text"
+              id="fTipo"
+              placeholder="Todos os tipos"
+              autocomplete="off"
+            />
+            <div class="combo-list" id="fTipoList"></div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Prefixo / Veículo</label>
+          <div class="combo">
+            <input
+              type="text"
+              id="fPrefixo"
+              placeholder="Todos os veículos"
+              autocomplete="off"
+            />
+            <div class="combo-list" id="fPrefixoList"></div>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="aplicarFiltros()">
+            Aplicar
+          </button>
+          <button class="btn btn-ghost" onclick="limparFiltros()">
+            Limpar
+          </button>
+          <button
+            type="button"
+            onclick="abrirModalRegistro()"
+            style="background:transparent;border:1px solid var(--borda2);color:var(--texto2);padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'Barlow',sans-serif;display:flex;align-items:center;gap:6px;transition:all .2s"
+            onmouseover="this.style.borderColor='var(--laranja)';this.style.color='var(--laranja)'"
+            onmouseout="this.style.borderColor='var(--borda2)';this.style.color='var(--texto2)'"
+          >
+            <svg viewBox="0 0 12 12" width="11" height="11" fill="currentColor"><path d="M6 1v10M1 6h10"/></svg>
+            <span class="btn-apres-texto">Registrar</span>
+          </button>
+          <button
+            id="btnApresentacao"
+            class="btn-modo-apresentacao"
+            type="button"
+            onclick="abrirModoApresentacao()"
+          >
+            <span class="btn-modo-apresentacao-icon" aria-hidden="true">
+              <!-- ícone "play" minimalista em SVG -->
+              <svg viewBox="0 0 12 12">
+                <polygon points="3,2 9,6 3,10"></polygon>
+              </svg>
+            </span>
+            <span class="btn-apres-texto">Modo apresentação</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+      <!-- View especializada (gerada por JS) -->
+      <div id="specialView" style="display:none"></div>
+
+      <!-- View genérica -->
+      <div id="genericView">
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi" style="--kpi-c: var(--laranja)">
+          <div class="kpi-stripe"></div>
+          <div class="kpi-label">Total de ocorrências</div>
+          <div class="kpi-value" id="kTotal">—</div>
+          <div class="kpi-sub" id="kPeriodo">aguardando dados</div>
+        </div>
+        <div class="kpi" style="--kpi-c: var(--laranja)">
+          <div class="kpi-stripe"></div>
+          <div class="kpi-label">Tipo mais frequente</div>
+          <div
+            class="kpi-value"
+            id="kTipo"
+            style="font-size: 20px; padding-top: 5px"
+          >
+            —
+          </div>
+          <div class="kpi-sub" id="kTipoPct">—</div>
+        </div>
+        <div
+          class="kpi kpi-clickable"
+          id="cardVeiculoCritico"
+          style="--kpi-c: var(--vermelho); cursor: pointer"
+          title="Clique para ver detalhes das ocorrências do veículo crítico"
+        >
+          <div class="kpi-stripe"></div>
+          <div class="kpi-label">Veículo crítico</div>
+          <div class="kpi-value" id="kVeiculo">—</div>
+          <div class="kpi-sub" id="kVeiculoSub">—</div>
+        </div>
+        <div
+          class="kpi kpi-clickable"
+          id="cardPsgCritico"
+          style="--kpi-c: var(--vermelho); cursor: pointer"
+          title="Clique para ver as ocorrências envolvendo passageiros"
+        >
+          <div class="kpi-stripe"></div>
+          <div class="kpi-label">Incidentes c/ passageiro</div>
+          <div class="kpi-value" id="kPsg">—</div>
+          <div class="kpi-sub">ocorrências com PSG</div>
+        </div>
+      </div>
+
+      <!-- Tipos + Diário -->
+      <div class="row2">
+        <div class="card">
+          <div class="card-title">Distribuição por tipo</div>
+          <div class="chart-wrap" style="height: 240px">
+            <canvas id="tipoChart"></canvas>
+          </div>
+          <div class="legend" id="tipoLegend"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Volume por data</div>
+          <div class="chart-wrap" style="height: 240px">
+            <canvas id="diarioChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prefixos + Responsáveis + Bases -->
+      <div class="row3">
+        <div class="card">
+          <div class="card-title">Top veículos (reincidência)</div>
+          <div class="chart-wrap" style="height: 210px">
+            <canvas id="prefixoChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Responsável por registro</div>
+          <ul class="rank-list" id="rankResp"></ul>
+        </div>
+        <div class="card">
+          <div class="card-title">Bases regionais</div>
+          <ul class="rank-list" id="rankBase"></ul>
+        </div>
+      </div>
+
+      <!-- Mecânicas + PSG -->
+      <div class="row4">
+        <div class="card">
+          <div class="card-title">Detalhamento mecânico</div>
+          <div class="chart-wrap" style="height: 220px">
+            <canvas id="mecChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Incidentes com passageiros</div>
+          <div id="psgList"></div>
+        </div>
+      </div>
+
+      <!-- Reincidência -->
+      <div class="card" style="margin-bottom: 10px">
+        <div class="card-title">Reincidência por veículo no período</div>
+        <div class="chart-wrap" style="height: 180px">
+          <canvas id="reincChart"></canvas>
+        </div>
+      </div>
+
+      <!-- DOCUMENTOS -->
+      <div class="card" style="margin-bottom: 10px">
+        <div class="card-title">Documentos vinculados às ocorrências<span id="docsCount" class="badge b-orange" style="display:none"></span></div>
+        <div class="docs-wrap">
+          <table class="docs-table" id="docsTable">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Prefixo</th>
+                <th>Tipo</th>
+                <th>Arquivo</th>
+                <th>Observação</th>
+              </tr>
+            </thead>
+            <tbody id="docsBody">
+              <tr>
+                <td
+                  colspan="5"
+                  style="
+                    text-align: center;
+                    padding: 20px;
+                    color: var(--texto3);
+                  "
+                >
+                  Carregando...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Recomendações -->
+      <div class="recs">
+        <div class="recs-title">Recomendações identificadas</div>
+        <div class="recs-grid" id="recsGrid"></div>
+      </div>
+
+      </div><!-- /genericView -->
+    </div>
+    <!-- /main -->
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-left">
+          <div class="footer-brand">BI Operacional · Viação Catedral</div>
+          <div>Controle de Ocorrências · Sistema de Análise Interna</div>
+          <div id="footerPeriodo" style="margin-top: 2px"></div>
+        </div>
+        <div class="footer-right">
+          <div>Desenvolvido por</div>
+          <div
+            style="
+              color: var(--texto);
+              font-weight: 600;
+              font-size: 13px;
+              margin: 2px 0;
+            "
+          >
+            Lucas Inácio
+          </div>
+          <div>Analista de Dados · Viação Catedral</div>
+        </div>
+      </div>
+      <div class="footer-divider"></div>
+      <div class="footer-copy">
+        © <span id="anoAtual"></span> <span>Lucas Inácio</span> · Todos os
+        direitos reservados · Uso exclusivo interno · Viação Catedral · Proibida
+        reprodução não autorizada
+      </div>
+    </footer>
+
+    <!-- MODAL – Detalhes do Veículo Crítico -->
+    <div id="modalVeiculo" class="modal-veiculo">
+      <div class="modal-veiculo-backdrop"></div>
+      <div class="modal-veiculo-content">
+        <div class="modal-veiculo-header">
+          <div>
+            <div class="modal-veiculo-title">
+              Veículo crítico <span id="modalVeiculoPrefixo"></span>
+            </div>
+            <div class="modal-veiculo-sub" id="modalVeiculoResumo"></div>
+          </div>
+          <button class="modal-veiculo-close" id="modalVeiculoClose">×</button>
+        </div>
+
+        <div class="modal-veiculo-body">
+          <table class="docs-table modal-veiculo-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Detalhes</th>
+                <th>Status</th>
+                <th>Base</th>
+                <th>Dias em aberto</th>
+              </tr>
+            </thead>
+            <tbody id="modalVeiculoBody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 18px">
+                  Carregando ocorrências...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL – Incidentes com Passageiros -->
+    <div id="modalPsg" class="modal-veiculo" style="display: none">
+      <div class="modal-veiculo-backdrop"></div>
+      <div class="modal-veiculo-content">
+        <div class="modal-veiculo-header">
+          <div>
+            <div class="modal-veiculo-title">Incidentes com passageiros</div>
+            <div class="modal-veiculo-sub" id="modalPsgResumo"></div>
+          </div>
+          <button class="modal-veiculo-close" id="modalPsgClose">×</button>
+        </div>
+
+        <div class="modal-veiculo-body">
+          <table class="docs-table modal-veiculo-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Detalhes</th>
+                <th>Prefixo</th>
+                <th>Base</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="modalPsgBody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 18px">
+                  Carregando incidentes...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL – Registrar Ocorrências -->
+    <div id="modalRegistro" class="modal-reg">
+      <div class="modal-reg-backdrop" onclick="fecharModalRegistro()"></div>
+      <div class="modal-reg-content">
+
+        <div class="modal-reg-header">
+          <div>
+            <div class="modal-reg-title">Registrar ocorrências <span>CONTROLE</span></div>
+          </div>
+          <button class="modal-veiculo-close" onclick="fecharModalRegistro()">×</button>
+        </div>
+
+        <div class="modal-reg-body">
+          <div class="reg-table-wrap">
+            <table class="reg-table" id="regTable">
+              <thead>
+                <tr>
+                  <th style="width:32px">#</th>
+                  <th>Prefixo</th>
+                  <th>Tipo</th>
+                  <th>Detalhes</th>
+                  <th>Status</th>
+                  <th>Data postagem</th>
+                  <th>Fim apuração</th>
+                  <th>Observações</th>
+                  <th>Base responsável</th>
+                  <th style="width:32px"></th>
+                </tr>
+              </thead>
+              <tbody id="regBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="modal-reg-footer">
+          <div class="reg-cco-row">
+            <label>CCO Responsável (col. L)</label>
+            <input type="text" id="regPlantonista" placeholder="Nome do responsável CCO..." />
+          </div>
+          <div class="reg-actions">
+            <button class="btn-add-row" onclick="adicionarLinhaRegistro()">+ Adicionar linha</button>
+            <div style="display:flex;gap:10px">
+              <button class="btn-secondary" onclick="fecharModalRegistro()">Cancelar</button>
+              <button class="btn-primary" id="btnEnviarRegistro" onclick="enviarRegistros()">Salvar na planilha</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL – Motorista (Avaria) -->
+    <div id="modalMotoristaAvaria" class="modal-veiculo" style="display:none">
+      <div class="modal-veiculo-backdrop" onclick="fecharModalMotoristaAvaria()"></div>
+      <div class="modal-veiculo-content">
+        <div class="modal-veiculo-header">
+          <div>
+            <div class="modal-veiculo-title">
+              Avarias · <span id="modalMotNome" style="color:var(--laranja)"></span>
+            </div>
+            <div class="modal-veiculo-sub" id="modalMotResumo"></div>
+          </div>
+          <button class="modal-veiculo-close" onclick="fecharModalMotoristaAvaria()">×</button>
+        </div>
+        <div class="modal-veiculo-body">
+          <table class="docs-table modal-veiculo-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Prefixo</th>
+                <th>Tipo</th>
+                <th>Detalhes</th>
+                <th>Base</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="modalMotBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById("anoAtual").textContent =
+        new Date().getFullYear();
+
+      // ─────────────────────────────────────────────
+      //  Estado global
+      // ─────────────────────────────────────────────
+      let todosRegistros = [];
+      let charts = {};
+      let webAppBaseUrl = "";
+      let gestorPorBase = {};
+      let _dadosAvaria = []; // cache dos dados de avaria para o modal
+
+      const COR_MAP = {
+        mecân: "#3b82c4",
+        mecanica: "#3b82c4",
+        "ar cond": "#22c97a",
+        pneu: "#f0c040",
+        avaria: "#e05050",
+        suspen: "#8b5cf6",
+        pane: "#f47920",
+        outros: "#666666",
+        gs: "#38bdf8",
+        psg: "#ec4899",
+      };
+      const CORES_PAL = [
+        "#f47920",
+        "#3b82c4",
+        "#22c97a",
+        "#f0c040",
+        "#e05050",
+        "#8b5cf6",
+        "#38bdf8",
+        "#ec4899",
+        "#a3e635",
+        "#fb923c",
+      ];
+      const PSG_KW = [
+        "psg",
+        "passageiro",
+        "atendimento medico",
+        "surto",
+        "importunação",
+        "importunacao",
+        "deixado",
+        "deixou",
+      ];
+      const MEC_MAP = {
+        "Perda de potência/veloc.": ["poten", "veloc", "aceler"],
+        Arrefecimento: ["arref"],
+        Freios: ["freio", "pinç", "pinca"],
+        "Câmbio / marcha": ["cambio", "câmbio", "marcha"],
+        "Alternador / bateria": ["altern", "bateria"],
+        Superaquecimento: ["superaquec"],
+      };
+
+      const GC = "#2e2e2e";
+      const GT = "#555555";
+
+      // ─────────────────────────────────────────────
+      //  Bootstrap
+      // ─────────────────────────────────────────────
+
+      window.onload = function () {
+        // Busca a URL real do web app (dev/exec) para usar no modo apresentação
+        google.script.run
+          .withSuccessHandler(function (url) {
+            webAppBaseUrl = url;
+          })
+          .getWebAppUrl();
+
+        setBadge("loading");
+
+        // Calcula o mês atual em formato YYYY-MM-DD
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = (hoje.getMonth() + 1).toString().padStart(2, "0");
+        const primeiroDia = `${ano}-${mes}-01`;
+        const ultimoDiaNum = new Date(ano, hoje.getMonth() + 1, 0).getDate();
+        const ultimoDia = `${ano}-${mes}-${ultimoDiaNum
+          .toString()
+          .padStart(2, "0")}`;
+
+        // Chama o backend passando o período do mês atual
+        carregarDadosPorPeriodo(primeiroDia, ultimoDia);
+
+        const card = document.getElementById("cardVeiculoCritico");
+        const closeBtn = document.getElementById("modalVeiculoClose");
+        const backdrop = document.querySelector(".modal-veiculo-backdrop");
+
+        if (card) {
+          card.addEventListener("click", abrirModalVeiculoCritico);
+        }
+        if (closeBtn) {
+          closeBtn.addEventListener("click", fecharModalVeiculoCritico);
+        }
+        if (backdrop) {
+          backdrop.addEventListener("click", fecharModalVeiculoCritico);
+        }
+
+        // Eventos do modal e card de incidentes com passageiro
+        const cardPsg = document.getElementById("cardPsgCritico");
+        const closePsg = document.getElementById("modalPsgClose");
+        // reusa o mesmo backdrop
+        const backdropPsg = document.querySelector(
+          "#modalPsg .modal-veiculo-backdrop",
+        );
+
+        if (cardPsg) {
+          cardPsg.addEventListener("click", abrirModalPsg);
+        }
+        if (closePsg) {
+          closePsg.addEventListener("click", fecharModalPsg);
+        }
+        if (backdropPsg) {
+          backdropPsg.addEventListener("click", fecharModalPsg);
+        }
+      };
+
+      function ehOcorrenciaTecnica(r) {
+        const t = normTipo(r.tipo).toLowerCase();
+
+        // Primeiro: excluir o que NÃO queremos
+        if (t.includes("psg")) return false;
+        if (t.includes("sac")) return false;
+        if (t.includes("pax") || t.includes("passageiro")) return false;
+
+        // inclui aqui todos os tipos que contam para "veículo crítico"
+        if (t.includes("mecân") || t.includes("mecanica")) return true;
+        if (t.includes("pneu")) return true;
+        if (t.includes("suspens")) return true;
+
+        if (t.includes("avaria")) return true;
+
+        return false;
+      }
+
+      function onLoad(jsonStr) {
+        try {
+          todosRegistros = JSON.parse(jsonStr).filter((r) => r.data);
+
+          gestorPorBase = {};
+          todosRegistros.forEach((r) => {
+            if (r.base && r.gestor) gestorPorBase[r.base.trim()] = r.gestor;
+          });
+
+          console.log("Registros carregados:", todosRegistros.length);
+          console.log("Primeira data:", todosRegistros[0]?.data);
+          console.log(
+            "Última data:",
+            todosRegistros[todosRegistros.length - 1]?.data,
+          );
+          setBadge("ok", todosRegistros.length + " registros");
+          popularFiltros();
+          renderizar(filtrar());
+          document.getElementById("subheader").textContent =
+            "Leitura direta da planilha · " +
+            new Date().toLocaleString("pt-BR");
+        } catch (e) {
+          onErro(e);
+        }
+      }
+
+      function abrirModalVeiculoCritico() {
+        const prefixo = document.getElementById("kVeiculo").textContent.trim();
+        if (!prefixo || prefixo === "—" || prefixo === "…") return;
+
+        const ini = document.getElementById("fDataIni").value;
+        const fim = document.getElementById("fDataFim").value;
+        const tp = document.getElementById("fTipo").dataset.value || "";
+
+        const modal = document.getElementById("modalVeiculo");
+        const tbody = document.getElementById("modalVeiculoBody");
+
+        document.getElementById("modalVeiculoPrefixo").textContent = prefixo;
+        document.getElementById("modalVeiculoResumo").textContent =
+          "Carregando ocorrências para o período filtrado...";
+
+        tbody.innerHTML =
+          '<tr><td colspan="6" style="text-align:center;padding:18px">Carregando...</td></tr>';
+
+        modal.style.display = "block";
+
+        const lista = todosRegistros.filter((r) => {
+          if (!r.data) return false;
+          if (r.prefixo !== prefixo) return false;
+          if (!ehOcorrenciaTecnica(r)) return false;
+          if (ini && r.data < ini) return false;
+          if (fim && r.data > fim) return false;
+          if (tp && normTipo(r.tipo) !== tp) return false;
+          return true;
+        });
+
+        renderModalVeiculo(prefixo, lista);
+      }
+
+      function abrirModalPsg() {
+        const totalPsg = parseInt(
+          document.getElementById("kPsg").textContent || "0",
+          10,
+        );
+        if (!totalPsg) {
+          // nada para mostrar
+          return;
+        }
+
+        const ini = document.getElementById("fDataIni").value;
+        const fim = document.getElementById("fDataFim").value;
+
+        const modal = document.getElementById("modalPsg");
+        const tbody = document.getElementById("modalPsgBody");
+
+        document.getElementById("modalPsgResumo").textContent =
+          "Carregando incidentes com passageiros no período filtrado...";
+
+        tbody.innerHTML =
+          '<tr><td colspan="6" style="text-align:center;padding:18px">Carregando...</td></tr>';
+
+        modal.style.display = "block";
+
+        // Filtra localmente: apenas PSG/SAC/PAX dentro do período atual
+        const lista = todosRegistros.filter((r) => {
+          if (!r.data) return false;
+          if (!ehPsg(r)) return false;
+          if (ini && r.data < ini) return false;
+          if (fim && r.data > fim) return false;
+          return true;
+        });
+
+        renderModalPsg(lista);
+      }
+
+      function abrirModoApresentacao() {
+        const baseUrl = webAppBaseUrl || window.location.href.split("?")[0];
+
+        const params = new URLSearchParams({
+          view: "apresentacao",
+        });
+
+        const urlApresentacao = baseUrl + "?" + params.toString();
+        console.log("Abrindo apresentação em:", urlApresentacao);
+
+        window.open(urlApresentacao, "_blank");
+      }
+
+      function fecharModalPsg() {
+        const modal = document.getElementById("modalPsg");
+        if (modal) modal.style.display = "none";
+      }
+
+      // ── MODAL MOTORISTA AVARIA ────────────────────────────
+      function abrirModalMotoristaAvaria(motorista) {
+        const ocorrencias = _dadosAvaria.filter(r => r.motorista === motorista);
+        const modal = document.getElementById("modalMotoristaAvaria");
+
+        document.getElementById("modalMotNome").textContent = motorista;
+        document.getElementById("modalMotResumo").textContent =
+          `${ocorrencias.length} avaria${ocorrencias.length !== 1 ? "s" : ""} registrada${ocorrencias.length !== 1 ? "s" : ""} no período`;
+
+        const tbody = document.getElementById("modalMotBody");
+        if (!ocorrencias.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--texto3)">Nenhuma ocorrência encontrada.</td></tr>';
+        } else {
+          tbody.innerHTML = ocorrencias
+            .sort((a, b) => b.data.localeCompare(a.data))
+            .map(r => `<tr>
+              <td>${fmtData(r.data)}</td>
+              <td><span class="sv-tag">${r.prefixo || "—"}</span></td>
+              <td>${normTipo(r.tipo)}</td>
+              <td style="color:var(--texto3);max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.detalhes || "—"}</td>
+              <td>${r.base || "—"}</td>
+              <td>${r.status || "—"}</td>
+            </tr>`).join("");
+        }
+        modal.style.display = "block";
+      }
+
+      function fecharModalMotoristaAvaria() {
+        const modal = document.getElementById("modalMotoristaAvaria");
+        if (modal) modal.style.display = "none";
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          fecharModalMotoristaAvaria();
+          fecharModalRegistro();
+        }
+      });
+
+      // ══════════════════════════════════════════
+      // MODAL REGISTRO DE OCORRÊNCIAS
+      // ══════════════════════════════════════════
+
+      const STATUS_OPCOES = [
+        "Falta documento",
+        "Em execução",
+        "Em análise",
+        "feito",
+        "Pausado",
+        "Apurado",
+      ];
+
+      function _hoje() {
+        return new Date().toISOString().slice(0, 10);
+      }
+
+      const TIPOS_CONTROLE = [
+        "PANE SECA",
+        "AVARIA",
+        "Ocorrência mecânica",
+        "GS",
+        "AR CONDICIONADO",
+        "Suspensão",
+        "Pneu",
+        "PSG EM SURTO",
+        "COLISÃO COM VITIMAS",
+        "Foco de incêndio",
+        "Vazamento no sistema",
+        "PSG DEIXADO PARA TRAS",
+        "SEM MOTORISTA",
+        "PSG em atendimento medico",
+        "Furto",
+        "Outros",
+        "TAG",
+        "SAC",
+        "PAX SEM EMBARQUE",
+        "PAX DEDITO PELA POLICIA",
+      ];
+
+      function _tiposOptions() {
+        return TIPOS_CONTROLE.map((t) => `<option value="${t}">${t}</option>`).join("");
+      }
+
+      function _basesOptions() {
+        const bases = [...new Set(todosRegistros.map((r) => (r.base || "").trim()).filter(Boolean))].sort();
+        return bases.map((b) => `<option value="${b}">${b}</option>`).join("");
+      }
+
+      function _rowTemplate(idx) {
+        const statusOpts = STATUS_OPCOES.map(
+          (s) => `<option value="${s}">${s}</option>`
+        ).join("");
+        return `<tr id="reg-row-${idx}">
+          <td style="text-align:center;color:var(--texto3);font-size:11px">${idx}</td>
+          <td><input type="text" placeholder="Prefixo" style="width:80px" /></td>
+          <td>
+            <select>
+              <option value="">— Tipo —</option>
+              ${_tiposOptions()}
+            </select>
+          </td>
+          <td class="reg-td-det"><input type="text" placeholder="Detalhes da ocorrência" /></td>
+          <td>
+            <select>
+              <option value="">— Status —</option>
+              ${statusOpts}
+            </select>
+          </td>
+          <td><input type="date" value="${_hoje()}" /></td>
+          <td><input type="date" /></td>
+          <td class="reg-td-obs"><input type="text" placeholder="Observações" /></td>
+          <td>
+            <select>
+              <option value="">— Base —</option>
+              ${_basesOptions()}
+            </select>
+          </td>
+          <td><button class="btn-rem-row" onclick="removerLinhaRegistro(${idx})" title="Remover linha">✕</button></td>
+        </tr>`;
+      }
+
+      let _regIdx = 0;
+
+      function abrirModalRegistro() {
+        _regIdx = 0;
+        document.getElementById("regBody").innerHTML = "";
+        document.getElementById("regPlantonista").value = "";
+        adicionarLinhaRegistro();
+        document.getElementById("modalRegistro").style.display = "block";
+      }
+
+      function fecharModalRegistro() {
+        document.getElementById("modalRegistro").style.display = "none";
+      }
+
+      function adicionarLinhaRegistro() {
+        _regIdx++;
+        const tbody = document.getElementById("regBody");
+        tbody.insertAdjacentHTML("beforeend", _rowTemplate(_regIdx));
+      }
+
+      function removerLinhaRegistro(idx) {
+        const row = document.getElementById(`reg-row-${idx}`);
+        if (row) row.remove();
+        // Garante sempre ao menos 1 linha
+        if (!document.getElementById("regBody").children.length) {
+          adicionarLinhaRegistro();
+        }
+      }
+
+      function enviarRegistros() {
+        const plantonista = document.getElementById("regPlantonista").value.trim();
+        if (!plantonista) {
+          alert("Informe o nome do CCO responsável antes de salvar.");
+          document.getElementById("regPlantonista").focus();
+          return;
+        }
+
+        const rows = document.querySelectorAll("#regBody tr");
+        const registros = [];
+
+        rows.forEach((tr) => {
+          const inputs  = tr.querySelectorAll("input");
+          const selects = tr.querySelectorAll("select");
+          const prefixo = inputs[0].value.trim();
+          if (!prefixo) return; // ignora linhas sem prefixo
+
+          registros.push({
+            prefixo:       prefixo,
+            tipo:          selects[0].value,
+            detalhes:      inputs[1].value.trim(),
+            status:        selects[1].value,
+            dataPostagem:  inputs[2].value,
+            dataFim:       inputs[3].value,
+            observacoes:   inputs[4].value.trim(),
+            base:          selects[2].value,
+          });
+        });
+
+        if (!registros.length) {
+          alert("Preencha pelo menos uma linha com o prefixo do veículo.");
+          return;
+        }
+
+        const btn = document.getElementById("btnEnviarRegistro");
+        btn.textContent = "Salvando...";
+        btn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            const r = JSON.parse(res);
+            alert(`✓ ${r.linhas} ocorrência(s) registrada(s) com sucesso.`);
+            fecharModalRegistro();
+            btn.textContent = "Salvar na planilha";
+            btn.disabled = false;
+          })
+          .withFailureHandler(function (err) {
+            alert("Erro ao salvar: " + err.message);
+            btn.textContent = "Salvar na planilha";
+            btn.disabled = false;
+          })
+          .registrarOcorrencias(JSON.stringify({ plantonista, registros }));
+      }
+
+      function renderModalPsg(lista) {
+        const tbody = document.getElementById("modalPsgBody");
+        if (!tbody) return;
+
+        if (!lista || !lista.length) {
+          tbody.innerHTML =
+            '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--texto3)">Nenhum incidente com passageiro no período filtrado.</td></tr>';
+          document.getElementById("modalPsgResumo").textContent =
+            "Nenhum incidente com passageiro no período selecionado.";
+          return;
+        }
+
+        // ordenar por data desc
+        lista.sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
+
+        tbody.innerHTML = lista
+          .map((r) => {
+            const dataFmt = fmtData(r.data);
+            const det =
+              r.detalhes && r.detalhes.trim() !== "" ? r.detalhes.trim() : "—";
+            const base =
+              r.base && r.base.trim() !== "" ? r.base.trim() : "(sem base)";
+            const status = r.status && r.status.trim() !== "" ? r.status : "—";
+            const prefixo =
+              r.prefixo && String(r.prefixo).trim() !== ""
+                ? String(r.prefixo).trim()
+                : "—";
+
+            return (
+              "<tr>" +
+              "<td>" +
+              dataFmt +
+              "</td>" +
+              "<td>" +
+              normTipo(r.tipo) +
+              "</td>" +
+              '<td title="' +
+              det +
+              '">' +
+              det +
+              "</td>" +
+              "<td>" +
+              prefixo +
+              "</td>" +
+              "<td>" +
+              base +
+              "</td>" +
+              "<td>" +
+              status +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+
+        document.getElementById("modalPsgResumo").textContent =
+          lista.length +
+          " incidente" +
+          (lista.length > 1 ? "s" : "") +
+          " com passageiros no período filtrado.";
+      }
+
+      function fecharModalVeiculoCritico() {
+        const modal = document.getElementById("modalVeiculo");
+        modal.style.display = "none";
+      }
+      function renderModalVeiculo(prefixo, lista) {
+        const tbody = document.getElementById("modalVeiculoBody");
+
+        if (!lista || !lista.length) {
+          tbody.innerHTML =
+            '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--texto3)">Nenhuma ocorrência encontrada para este veículo no período filtrado.</td></tr>';
+          document.getElementById("modalVeiculoResumo").textContent =
+            "Nenhuma ocorrência no período selecionado.";
+          return;
+        }
+
+        tbody.innerHTML = lista
+          .map(function (r) {
+            const dataFmt = fmtData(r.data);
+            const det =
+              r.detalhes && r.detalhes.trim() !== "" ? r.detalhes.trim() : "—";
+            const obs =
+              r.observacao && r.observacao.trim() !== ""
+                ? r.observacao.trim()
+                : "—";
+            const base =
+              r.base && r.base.trim() !== "" ? r.base.trim() : "(sem base)";
+
+            return (
+              "<tr>" +
+              "<td>" +
+              dataFmt +
+              "</td>" +
+              "<td>" +
+              normTipo(r.tipo) +
+              "</td>" +
+              '<td title="' +
+              det +
+              '">' +
+              det +
+              "</td>" +
+              "<td>" +
+              (r.status || "—") +
+              "</td>" +
+              "<td>" +
+              base +
+              "</td>" +
+              "<td>" +
+              (r.diasAberto || 0) +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+
+        document.getElementById("modalVeiculoResumo").textContent =
+          lista.length +
+          " ocorrência" +
+          (lista.length > 1 ? "s" : "") +
+          " para o veículo " +
+          prefixo +
+          " no período filtrado.";
+      }
+
+      function onErro(e) {
+        setBadge("err");
+        document.getElementById("subheader").textContent =
+          "Falha ao carregar. Verifique as permissões.";
+        console.error(e);
+      }
+
+      function setBadge(estado, txt) {
+        const el = document.getElementById("badgeStatus");
+        if (estado === "loading") {
+          el.className = "badge-pill pill-loading";
+          el.textContent = "⏳ Carregando";
+        } else if (estado === "ok") {
+          el.className = "badge-pill pill-ok";
+          el.textContent = "✓ " + (txt || "OK");
+        } else {
+          el.className = "badge-pill pill-err";
+          el.textContent = "✗ Erro";
+        }
+      }
+
+      // ─────────────────────────────────────────────
+      //  Filtros
+      // ─────────────────────────────────────────────
+      function popularFiltros() {
+        const tipos = [
+          ...new Set(todosRegistros.map((r) => normTipo(r.tipo))),
+        ].sort();
+        const prefixos = [
+          ...new Set(todosRegistros.map((r) => r.prefixo)),
+        ].sort((a, b) => +a - +b);
+        const datas = todosRegistros
+          .map((r) => r.data)
+          .filter(Boolean)
+          .sort();
+
+        // Preenche datas depois de calcular mês atual (ver seção 3)
+        inicializarPeriodoPadrao(datas);
+
+        // Inicializa combos filtráveis
+        initCombo("fTipo", "fTipoList", tipos, "Todos os tipos");
+        initCombo("fPrefixo", "fPrefixoList", prefixos, "Todos os veículos");
+      }
+
+      function filtrar() {
+        const ini = document.getElementById("fDataIni").value;
+        const fim = document.getElementById("fDataFim").value;
+        const tp = document.getElementById("fTipo").dataset.value || "";
+        const pfx = document.getElementById("fPrefixo").dataset.value || "";
+
+        return todosRegistros.filter((r) => {
+          if (ini && r.data < ini) return false;
+          if (fim && r.data > fim) return false;
+          if (tp && normTipo(r.tipo) !== tp) return false;
+          if (pfx && r.prefixo !== pfx) return false;
+          return true;
+        });
+      }
+
+      function initCustomSelect(selectId, placeholder) {
+        const select = document.getElementById(selectId);
+        const wrapper = document.querySelector(
+          `.select-wrapper[data-select-id="${selectId}"]`,
+        );
+        if (!select || !wrapper) return;
+
+        const display = wrapper.querySelector(".select-display");
+        const dropdown = wrapper.querySelector(".select-dropdown");
+
+        // constrói as opções com base no <select>
+        function buildOptions() {
+          dropdown.innerHTML = "";
+          Array.from(select.options).forEach((opt, idx) => {
+            const div = document.createElement("div");
+            div.className =
+              "select-option" + (opt.value === "" ? " select-option-all" : "");
+            if (opt.selected) div.classList.add("selected");
+            div.dataset.value = opt.value;
+            div.textContent = opt.textContent;
+            dropdown.appendChild(div);
+          });
+          // texto inicial
+          const selOpt = select.options[select.selectedIndex];
+          display.textContent =
+            selOpt && selOpt.value !== "" ? selOpt.textContent : placeholder;
+        }
+
+        buildOptions();
+
+        display.addEventListener("click", () => {
+          const isOpen = wrapper.classList.contains("open");
+          document
+            .querySelectorAll(".select-wrapper.open")
+            .forEach((w) => w.classList.remove("open"));
+          if (!isOpen) wrapper.classList.add("open");
+        });
+
+        dropdown.addEventListener("click", (e) => {
+          const opt = e.target.closest(".select-option");
+          if (!opt) return;
+          const val = opt.dataset.value;
+
+          // atualizar <select> real
+          select.value = val;
+          Array.from(select.options).forEach((o) => {
+            o.selected = o.value === val;
+          });
+
+          // atualizar visual
+          dropdown
+            .querySelectorAll(".select-option")
+            .forEach((o) => o.classList.remove("selected"));
+          opt.classList.add("selected");
+          display.textContent = val ? opt.textContent : placeholder;
+
+          wrapper.classList.remove("open");
+          // se quiser aplicar filtro automaticamente ao escolher tipo:
+          // aplicarFiltros();
+        });
+
+        // fechar ao clicar fora
+        document.addEventListener("click", (e) => {
+          if (!wrapper.contains(e.target)) wrapper.classList.remove("open");
+        });
+      }
+
+      function limparFiltros() {
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = (hoje.getMonth() + 1).toString().padStart(2, "0");
+        const primeiroDia = `${ano}-${mes}-01`;
+        const ultimoDiaNum = new Date(ano, hoje.getMonth() + 1, 0).getDate();
+        const ultimoDia = `${ano}-${mes}-${ultimoDiaNum
+          .toString()
+          .padStart(2, "0")}`;
+
+        carregarDadosPorPeriodo(primeiroDia, ultimoDia);
+      }
+
+      function aplicarFiltros() {
+        let ini = document.getElementById("fDataIni").value;
+        let fim = document.getElementById("fDataFim").value;
+
+        if (!ini || !fim) {
+          alert("Informe data inicial e final para atualizar o período.");
+          return;
+        }
+
+        // se o usuário inverter as datas, corrige aqui
+        if (ini > fim) {
+          const tmp = ini;
+          ini = fim;
+          fim = tmp;
+        }
+
+        carregarDadosPorPeriodo(ini, fim);
+      }
+
+      // Combo filtrável simples
+      function initCombo(inputId, listId, values, placeholder) {
+        const input = document.getElementById(inputId);
+        const list = document.getElementById(listId);
+
+        input.value = "";
+        input.dataset.value = ""; // valor "real" usado no filtro
+        input.placeholder = placeholder;
+
+        function renderList(filter) {
+          const f = (filter || "").toLowerCase();
+          const filtrados = values.filter((v) => v.toLowerCase().includes(f));
+          let html = `<div class="combo-item combo-item-all" data-value="">${placeholder}</div>`;
+          filtrados.forEach((v) => {
+            html += `<div class="combo-item" data-value="${v}">${v}</div>`;
+          });
+          list.innerHTML = html;
+          list.style.display = "block";
+        }
+
+        input.addEventListener("focus", () => renderList(input.value));
+        input.addEventListener("input", () => renderList(input.value));
+
+        input.addEventListener("blur", () => {
+          setTimeout(() => {
+            list.style.display = "none";
+          }, 150);
+        });
+
+        list.addEventListener("mousedown", (e) => {
+          const item = e.target.closest(".combo-item");
+          if (!item) return;
+          const val = item.getAttribute("data-value");
+          input.dataset.value = val;
+          input.value = val || "";
+          if (!val) input.placeholder = placeholder;
+          list.style.display = "none";
+          renderizar(filtrar());
+        });
+      }
+
+      function carregarDadosPorPeriodo(dataIni, dataFim) {
+        setBadge("loading");
+        document.getElementById("subheader").textContent =
+          "Atualizando dados do período...";
+
+        google.script.run
+          .withSuccessHandler(onLoad)
+          .withFailureHandler(onErro)
+          .getDados(dataIni, dataFim);
+      }
+
+      // ─────────────────────────────────────────────
+      //  Helpers
+      // ─────────────────────────────────────────────
+      function normTipo(t) {
+        return String(t)
+          .trim()
+          .replace(/\*/g, "")
+          .replace(/\s+/g, " ")
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(" ");
+      }
+      function corTipo(t) {
+        const k = t.toLowerCase();
+        for (const [key, cor] of Object.entries(COR_MAP)) {
+          if (k.includes(key)) return cor;
+        }
+        return CORES_PAL[Math.abs(hashStr(t)) % CORES_PAL.length];
+      }
+      function hashStr(s) {
+        let h = 0;
+        for (let i = 0; i < s.length; i++)
+          h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+        return h;
+      }
+      function contar(arr, fn) {
+        const m = {};
+        arr.forEach((r) => {
+          const k = fn(r);
+          m[k] = (m[k] || 0) + 1;
+        });
+        return Object.entries(m).sort((a, b) => b[1] - a[1]);
+      }
+      function ehPsg(r) {
+        return PSG_KW.some((k) =>
+          (r.tipo + " " + r.detalhes).toLowerCase().includes(k),
+        );
+      }
+      function fmtData(d) {
+        if (!d) return "—";
+        return new Date(d + "T12:00:00").toLocaleDateString("pt-BR");
+      }
+
+      function inicializarPeriodoPadrao(datasOrdenadas) {
+        if (!datasOrdenadas.length) return;
+
+        const minData = datasOrdenadas[0];
+        const maxData = datasOrdenadas[datasOrdenadas.length - 1];
+
+        document.getElementById("fDataIni").value = minData;
+        document.getElementById("fDataFim").value = maxData;
+      }
+
+      function killChart(id) {
+        if (charts[id]) {
+          charts[id].destroy();
+          delete charts[id];
+        }
+      }
+
+      // ─────────────────────────────────────────────
+      //  Renderização
+      // ── DETECÇÃO DE TIPO ESPECIAL ─────────────────────────
+      function detectarTipoEspecial(tp) {
+        if (!tp) return null;
+        const t = tp.toLowerCase();
+        if (t.includes("avaria")) return "avaria";
+        if (t.includes("psg") || t.includes("passageiro")) return "psg";
+        if (t.includes("pane")) return "pane";
+        if (t.includes("mecân") || t.includes("mecanica") || t.includes("mecanic")) return "mec";
+        if (t.includes("rastreamento") || t.includes("rastrear") || t.includes("gps") || t.includes("localizador")) return "rastreamento";
+        return null;
+      }
+
+      // ── HELPERS COMPARTILHADOS ────────────────────────────
+      function svBarChart(canvasId, labels, data, color) {
+        killChart(canvasId);
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+        charts[canvasId] = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [{ data, backgroundColor: color + "cc", borderColor: color, borderWidth: 1, borderRadius: 4 }],
+          },
+          options: {
+            indexAxis: "y", responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { beginAtZero: true, ticks: { stepSize: 1, color: GT }, grid: { color: GC } },
+              y: { ticks: { color: GT, font: { size: 11 } }, grid: { display: false } },
+            },
+          },
+        });
+      }
+
+      function svDonutChart(canvasId, labels, data, colors) {
+        killChart(canvasId);
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+        charts[canvasId] = new Chart(ctx, {
+          type: "doughnut",
+          data: { labels, datasets: [{ data, backgroundColor: colors.map(c => c + "cc"), borderColor: colors, borderWidth: 1 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: "right", labels: { color: GT, font: { size: 11 }, boxWidth: 12, padding: 10 } } },
+          },
+        });
+      }
+
+      function svRankList(items, colorFn) {
+        const mx = items[0]?.[1] || 1;
+        return items.map(([n, q], i) => {
+          const g = gestorPorBase[n];
+          const label = g ? `<strong>${g}</strong>` : n;
+          const cor = colorFn ? colorFn(q, mx) : "var(--laranja)";
+          return `<li class="rank-item">
+            <span class="rank-pos">${String(i + 1).padStart(2, "0")}</span>
+            <span class="rank-name">${label}</span>
+            <div class="rank-bar-bg"><div class="rank-bar" style="width:${Math.round((q / mx) * 100)}%;background:${cor}"></div></div>
+            <span class="rank-val">${q}</span>
+          </li>`;
+        }).join("");
+      }
+
+      function svKpi(label, value, sub, cor) {
+        return `<div class="kpi" style="--kpi-c:${cor}">
+          <div class="kpi-stripe"></div>
+          <div class="kpi-label">${label}</div>
+          <div class="kpi-value">${value}</div>
+          ${sub ? `<div class="kpi-sub">${sub}</div>` : ""}
+        </div>`;
+      }
+
+      // ── AVARIA ───────────────────────────────────────────
+      function renderEspecialAvaria(d) {
+        _dadosAvaria = d; // salva para o modal usar
+
+        const total = d.length;
+        const veiculos = new Set(d.map(r => r.prefixo).filter(Boolean)).size;
+        const bases = new Set(d.map(r => r.base).filter(Boolean)).size;
+        const pct = todosRegistros.length ? Math.round((total / todosRegistros.length) * 100) : 0;
+
+        const topVeic = contar(d, r => r.prefixo).slice(0, 8);
+        const topBase = contar(d, r => r.base && r.base.trim()).slice(0, 6);
+        const topMot  = contar(d, r => r.motorista).slice(0, 10);
+
+        document.getElementById("specialView").innerHTML = `
+          <div class="sv-header">
+            <span class="sv-badge" style="color:#e05050;border-color:#e05050;background:rgba(224,80,80,0.1)">⚠ Avaria</span>
+            <span class="sv-total">${total} ocorrências no período</span>
+          </div>
+          <div class="sv-kpi-row">
+            ${svKpi("Total de avarias", total, `${pct}% do volume geral`, "#e05050")}
+            ${svKpi("Veículos envolvidos", veiculos, "prefixos distintos", "#f47920")}
+            ${svKpi("Bases envolvidas", bases, "regiões afetadas", "#3b82c4")}
+            ${svKpi("Reincidência máx.", topVeic[0] ? `${topVeic[0][0]} · ${topVeic[0][1]}x` : "—", "veículo mais avariado", "#8b5cf6")}
+          </div>
+          <div class="sv-row3">
+            <div class="card">
+              <div class="card-title">Top veículos com avaria</div>
+              <div class="chart-wrap" style="height:240px"><canvas id="sv-veic"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Distribuição por base</div>
+              <ul class="rank-list" id="sv-base-list"></ul>
+            </div>
+            <div class="card">
+              <div class="card-title">Motoristas envolvidos
+                <span style="font-size:10px;color:var(--texto3);font-weight:400;margin-left:6px">clique para detalhar</span>
+              </div>
+              <ul class="rank-list" id="sv-mot-list"></ul>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Detalhes das avarias</div>
+            <div class="sv-table-wrap">
+              <table class="sv-table">
+                <thead><tr><th>Prefixo</th><th>Data</th><th>Tipo</th><th>Detalhes</th><th>Base</th></tr></thead>
+                <tbody>${d.slice(0, 50).map(r => `<tr>
+                  <td><span class="sv-tag">${r.prefixo || "—"}</span></td>
+                  <td>${fmtData(r.data)}</td>
+                  <td>${normTipo(r.tipo)}</td>
+                  <td style="color:var(--texto3);max-width:280px">${r.detalhes || "—"}</td>
+                  <td>${r.base || "—"}</td>
+                </tr>`).join("")}</tbody>
+              </table>
+            </div>
+          </div>`;
+
+        svBarChart("sv-veic", topVeic.map(([n]) => n), topVeic.map(([,q]) => q), "#e05050");
+
+        const svBaseEl = document.getElementById("sv-base-list");
+        if (svBaseEl) svBaseEl.innerHTML = svRankList(topBase);
+
+        // Lista clicável de motoristas
+        const svMotEl = document.getElementById("sv-mot-list");
+        if (svMotEl) {
+          const mxMot = topMot[0]?.[1] || 1;
+          svMotEl.innerHTML = topMot.map(([nome, qtd], i) => `
+            <li class="rank-item" style="cursor:pointer"
+                onclick="abrirModalMotoristaAvaria('${nome.replace(/'/g, "\\'")}')">
+              <span class="rank-pos">${String(i + 1).padStart(2, "0")}</span>
+              <span class="rank-name" style="color:var(--texto)">${nome}</span>
+              <div class="rank-bar-bg">
+                <div class="rank-bar" style="width:${Math.round((qtd / mxMot) * 100)}%;background:#e05050"></div>
+              </div>
+              <span class="rank-val">${qtd}</span>
+            </li>`).join("");
+        }
+      }
+
+      // ── PSG ──────────────────────────────────────────────
+      function renderEspecialPsg(d) {
+        const total = d.length;
+        const motoristas = new Set(d.map(r => r.motorista).filter(Boolean)).size;
+        const bases = new Set(d.map(r => r.base).filter(Boolean)).size;
+        const pct = todosRegistros.length ? Math.round((total / todosRegistros.length) * 100) : 0;
+
+        const topMot = contar(d, r => r.motorista).slice(0, 8);
+        const topSubtipo = contar(d, r => normTipo(r.tipo)).slice(0, 6);
+        const topBase = contar(d, r => r.base && r.base.trim()).slice(0, 6);
+
+        document.getElementById("specialView").innerHTML = `
+          <div class="sv-header">
+            <span class="sv-badge" style="color:#ec4899;border-color:#ec4899;background:rgba(236,72,153,0.1)">👥 Passageiros</span>
+            <span class="sv-total">${total} incidentes com passageiros no período</span>
+          </div>
+          <div class="sv-kpi-row">
+            ${svKpi("Total incidentes PSG", total, `${pct}% do volume geral`, "#ec4899")}
+            ${svKpi("Motoristas envolvidos", motoristas, "condutores distintos", "#f47920")}
+            ${svKpi("Bases envolvidas", bases, "regiões afetadas", "#3b82c4")}
+            ${svKpi("+ recorrente", topMot[0] ? topMot[0][0] : "—", topMot[0] ? `${topMot[0][1]} ocorrências` : "", "#e05050")}
+          </div>
+          <div class="sv-row3">
+            <div class="card">
+              <div class="card-title">Top motoristas envolvidos</div>
+              <div class="chart-wrap" style="height:220px"><canvas id="sv-mot"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Subtipos de incidente</div>
+              <div class="chart-wrap" style="height:220px"><canvas id="sv-subtipo"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Distribuição por base</div>
+              <ul class="rank-list" id="sv-base-list"></ul>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Detalhes dos incidentes</div>
+            <div class="sv-table-wrap">
+              <table class="sv-table">
+                <thead><tr><th>Motorista</th><th>Prefixo</th><th>Data</th><th>Tipo</th><th>Base</th></tr></thead>
+                <tbody>${d.slice(0, 50).map(r => `<tr>
+                  <td>${r.motorista || "—"}</td>
+                  <td><span class="sv-tag">${r.prefixo || "—"}</span></td>
+                  <td>${fmtData(r.data)}</td>
+                  <td>${normTipo(r.tipo)}</td>
+                  <td>${r.base || "—"}</td>
+                </tr>`).join("")}</tbody>
+              </table>
+            </div>
+          </div>`;
+
+        svBarChart("sv-mot", topMot.map(([n]) => n), topMot.map(([,q]) => q), "#ec4899");
+        svDonutChart("sv-subtipo", topSubtipo.map(([n]) => n), topSubtipo.map(([,q]) => q), CORES_PAL);
+
+        const svBaseEl = document.getElementById("sv-base-list");
+        if (svBaseEl) svBaseEl.innerHTML = svRankList(topBase);
+      }
+
+      // ── PANE SECA ────────────────────────────────────────
+      function renderEspecialPane(d) {
+        const total = d.length;
+        const veiculos = new Set(d.map(r => r.prefixo).filter(Boolean)).size;
+        const motoristas = new Set(d.map(r => r.motorista).filter(Boolean)).size;
+        const bases = new Set(d.map(r => r.base).filter(Boolean)).size;
+
+        const topVeic = contar(d, r => r.prefixo).slice(0, 8);
+        const topMot = contar(d, r => r.motorista).slice(0, 6);
+        const topBase = contar(d, r => r.base && r.base.trim()).slice(0, 6);
+
+        document.getElementById("specialView").innerHTML = `
+          <div class="sv-header">
+            <span class="sv-badge" style="color:#f47920;border-color:#f47920;background:rgba(244,121,32,0.1)">⛽ Pane Seca</span>
+            <span class="sv-total">${total} ocorrências no período</span>
+          </div>
+          <div class="sv-kpi-row">
+            ${svKpi("Total pane seca", total, "ocorrências no período", "#f47920")}
+            ${svKpi("Veículos envolvidos", veiculos, "prefixos distintos", "#e05050")}
+            ${svKpi("Motoristas", motoristas, "condutores distintos", "#ec4899")}
+            ${svKpi("Bases afetadas", bases, "regiões distintas", "#3b82c4")}
+          </div>
+          <div class="sv-row3">
+            <div class="card">
+              <div class="card-title">Top veículos com pane</div>
+              <div class="chart-wrap" style="height:220px"><canvas id="sv-veic"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Top motoristas</div>
+              <div class="chart-wrap" style="height:220px"><canvas id="sv-mot"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Distribuição por base</div>
+              <ul class="rank-list" id="sv-base-list"></ul>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Detalhes das ocorrências</div>
+            <div class="sv-table-wrap">
+              <table class="sv-table">
+                <thead><tr><th>Prefixo</th><th>Motorista</th><th>Data</th><th>Detalhes</th><th>Base</th></tr></thead>
+                <tbody>${d.slice(0, 50).map(r => `<tr>
+                  <td><span class="sv-tag">${r.prefixo || "—"}</span></td>
+                  <td>${r.motorista || "—"}</td>
+                  <td>${fmtData(r.data)}</td>
+                  <td style="color:var(--texto3);max-width:280px">${r.detalhes || "—"}</td>
+                  <td>${r.base || "—"}</td>
+                </tr>`).join("")}</tbody>
+              </table>
+            </div>
+          </div>`;
+
+        svBarChart("sv-veic", topVeic.map(([n]) => n), topVeic.map(([,q]) => q), "#f47920");
+        svBarChart("sv-mot", topMot.map(([n]) => n), topMot.map(([,q]) => q), "#ec4899");
+
+        const svBaseEl = document.getElementById("sv-base-list");
+        if (svBaseEl) svBaseEl.innerHTML = svRankList(topBase);
+      }
+
+      // ── MECÂNICA ─────────────────────────────────────────
+      function renderEspecialMec(d) {
+        const total = d.length;
+        const veiculos = new Set(d.map(r => r.prefixo).filter(Boolean)).size;
+        const bases = new Set(d.map(r => r.base).filter(Boolean)).size;
+
+        // categorias via MEC_MAP
+        const counts = {};
+        Object.keys(MEC_MAP).forEach(k => counts[k] = 0);
+        counts["Outros mecânicos"] = 0;
+        d.forEach(r => {
+          const txt = (r.tipo + " " + r.detalhes).toLowerCase();
+          let ok = false;
+          for (const [cat, kws] of Object.entries(MEC_MAP)) {
+            if (kws.some(k => txt.includes(k))) { counts[cat]++; ok = true; break; }
+          }
+          if (!ok) counts["Outros mecânicos"]++;
+        });
+        const categorias = Object.entries(counts).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+        const topVeic = contar(d, r => r.prefixo).slice(0, 8);
+        const topBase = contar(d, r => r.base && r.base.trim()).slice(0, 6);
+
+        document.getElementById("specialView").innerHTML = `
+          <div class="sv-header">
+            <span class="sv-badge" style="color:#3b82c4;border-color:#3b82c4;background:rgba(59,130,196,0.1)">⚙ Mecânica</span>
+            <span class="sv-total">${total} ocorrências mecânicas no período</span>
+          </div>
+          <div class="sv-kpi-row">
+            ${svKpi("Total mecânicas", total, "ocorrências no período", "#3b82c4")}
+            ${svKpi("Veículos afetados", veiculos, "prefixos distintos", "#f47920")}
+            ${svKpi("Categorias distintas", categorias.length, "tipos de problema", "#22c97a")}
+            ${svKpi("Bases envolvidas", bases, "regiões afetadas", "#8b5cf6")}
+          </div>
+          <div class="sv-row3">
+            <div class="card">
+              <div class="card-title">Distribuição por categoria</div>
+              <div class="chart-wrap" style="height:220px"><canvas id="sv-cat"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Top veículos com problema</div>
+              <div class="chart-wrap" style="height:220px"><canvas id="sv-veic"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Distribuição por base</div>
+              <ul class="rank-list" id="sv-base-list"></ul>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Detalhes das ocorrências</div>
+            <div class="sv-table-wrap">
+              <table class="sv-table">
+                <thead><tr><th>Prefixo</th><th>Data</th><th>Tipo</th><th>Detalhes</th><th>Base</th></tr></thead>
+                <tbody>${d.slice(0, 50).map(r => `<tr>
+                  <td><span class="sv-tag">${r.prefixo || "—"}</span></td>
+                  <td>${fmtData(r.data)}</td>
+                  <td>${normTipo(r.tipo)}</td>
+                  <td style="color:var(--texto3);max-width:280px">${r.detalhes || "—"}</td>
+                  <td>${r.base || "—"}</td>
+                </tr>`).join("")}</tbody>
+              </table>
+            </div>
+          </div>`;
+
+        svDonutChart("sv-cat", categorias.map(([n]) => n), categorias.map(([,q]) => q), CORES_PAL);
+        svBarChart("sv-veic", topVeic.map(([n]) => n), topVeic.map(([,q]) => q), "#3b82c4");
+
+        const svBaseEl = document.getElementById("sv-base-list");
+        if (svBaseEl) svBaseEl.innerHTML = svRankList(topBase);
+      }
+
+      // ─────────────────────────────────────────────
+      function renderizar(dados) {
+        const tp = document.getElementById("fTipo").dataset.value || "";
+        const tipoEspecial = detectarTipoEspecial(tp);
+
+        const genericView = document.getElementById("genericView");
+        const specialView = document.getElementById("specialView");
+
+        if (tipoEspecial) {
+          genericView.style.display = "none";
+          specialView.style.display = "block";
+          if (tipoEspecial === "avaria")       renderEspecialAvaria(dados);
+          else if (tipoEspecial === "psg")        renderEspecialPsg(dados);
+          else if (tipoEspecial === "pane")       renderEspecialPane(dados);
+          else if (tipoEspecial === "mec")        renderEspecialMec(dados);
+          else if (tipoEspecial === "rastreamento") renderEspecialRastreamento(dados);
+        } else {
+          specialView.style.display = "none";
+          genericView.style.display = "block";
+          renderKpis(dados);
+          renderTipos(dados);
+          renderDiario(dados);
+          renderPrefixo(dados);
+          renderRankResp(dados);
+          renderRankBase(dados);
+          renderMec(dados);
+          renderPsg(dados);
+          renderReinc(dados);
+          renderDocs(dados);
+          renderRecs(dados);
+        }
+
+        const datas = dados
+          .map((r) => r.data)
+          .filter(Boolean)
+          .sort();
+        if (datas.length) {
+          const per = `${fmtData(datas[0])} — ${fmtData(datas[datas.length - 1])}`;
+          document.getElementById("kPeriodo").textContent = per;
+          document.getElementById("footerPeriodo").textContent =
+            "Período: " + per + " · " + dados.length + " registros";
+        }
+      }
+
+      function renderKpis(d) {
+        document.getElementById("kTotal").textContent = d.length;
+
+        const tipos = contar(d, (r) => normTipo(r.tipo));
+        if (tipos.length) {
+          document.getElementById("kTipo").textContent = tipos[0][0];
+          document.getElementById("kTipoPct").textContent =
+            Math.round((tipos[0][1] / d.length) * 100) + "% do volume";
+        } else {
+          document.getElementById("kTipo").textContent = "—";
+          document.getElementById("kTipoPct").textContent = "—";
+        }
+
+        // Veículo crítico baseado só em ocorrências técnicas
+        const tecnicas = d.filter(ehOcorrenciaTecnica);
+        const pfxs = contar(tecnicas, (r) => r.prefixo);
+
+        if (pfxs.length) {
+          document.getElementById("kVeiculo").textContent = pfxs[0][0];
+          document.getElementById("kVeiculoSub").textContent =
+            pfxs[0][1] + " ocorrências técnicas no período";
+        } else {
+          document.getElementById("kVeiculo").textContent = "—";
+          document.getElementById("kVeiculoSub").textContent =
+            "Nenhuma ocorrência técnica no período";
+        }
+
+        document.getElementById("kPsg").textContent = d.filter(ehPsg).length;
+      }
+
+      // ─────────────────────────────────────────────
+      //  Veículo crítico (via backend)
+      // ─────────────────────────────────────────────
+
+      function renderTipos(d) {
+        killChart("tipo");
+        const entr = contar(d, (r) => normTipo(r.tipo)).slice(0, 10);
+        const lbs = entr.map((e) => e[0]);
+        const vals = entr.map((e) => e[1]);
+        const cors = lbs.map(corTipo);
+        const tot = vals.reduce((a, b) => a + b, 0);
+        charts["tipo"] = new Chart(document.getElementById("tipoChart"), {
+          type: "doughnut",
+          data: {
+            labels: lbs,
+            datasets: [
+              {
+                data: vals,
+                backgroundColor: cors,
+                borderWidth: 2,
+                borderColor: "#111",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) =>
+                    ` ${ctx.label}: ${ctx.raw} (${Math.round((ctx.raw / tot) * 100)}%)`,
+                },
+              },
+            },
+          },
+        });
+        const el = document.getElementById("tipoLegend");
+        el.innerHTML = "";
+        lbs.forEach((l, i) => {
+          el.innerHTML += `<span class="li"><span class="ld" style="background:${cors[i]}"></span>${l} ${Math.round((vals[i] / tot) * 100)}%</span>`;
+        });
+      }
+
+      function renderDiario(d) {
+        killChart("diario");
+        const pd = contar(d, (r) => r.data).sort((a, b) =>
+          a[0].localeCompare(b[0]),
+        );
+        const lbs = pd.map(([dt]) => fmtData(dt));
+        const vals = pd.map(([, v]) => v);
+        const mx = Math.max(...vals);
+        charts["diario"] = new Chart(document.getElementById("diarioChart"), {
+          type: "bar",
+          data: {
+            labels: lbs,
+            datasets: [
+              {
+                data: vals,
+                backgroundColor: vals.map((v) =>
+                  v === mx ? "#f47920" : v >= mx * 0.7 ? "#f0c040" : "#3b82c4",
+                ),
+                borderRadius: 5,
+                borderSkipped: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                ticks: {
+                  color: GT,
+                  font: { size: 10 },
+                  autoSkip: lbs.length > 16,
+                  maxRotation: 45,
+                },
+                grid: { display: false },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1, color: GT },
+                grid: { color: GC },
+              },
+            },
+          },
+        });
+      }
+
+      function renderPrefixo(d) {
+        killChart("pfx");
+        const entr = contar(d, (r) => r.prefixo).slice(0, 10);
+        const mx = entr[0]?.[1] || 1;
+        charts["pfx"] = new Chart(document.getElementById("prefixoChart"), {
+          type: "bar",
+          data: {
+            labels: entr.map((e) => e[0]),
+            datasets: [
+              {
+                data: entr.map((e) => e[1]),
+                backgroundColor: (ctx) => {
+                  const v = ctx.raw;
+                  return v === mx
+                    ? "#f47920"
+                    : v >= mx * 0.6
+                      ? "#f0c040"
+                      : "#3b82c4";
+                },
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: { stepSize: 1, color: GT },
+                grid: { color: GC },
+              },
+              y: {
+                ticks: { color: GT, font: { size: 11 } },
+                grid: { display: false },
+              },
+            },
+          },
+        });
+      }
+
+      function renderRankResp(d) {
+        const entr = contar(d, (r) => {
+          const b = String(r.base).trim();
+          return !b || b === "​" || b.toLowerCase().includes("ccocatedral")
+            ? "(sem responsável)"
+            : b;
+        }).filter(([n]) => n !== "(sem responsável)").slice(0, 6);
+        const mx = entr[0]?.[1] || 1;
+        document.getElementById("rankResp").innerHTML = entr
+          .map(([n, q], i) => {
+            const g = gestorPorBase[n];
+            const label = g ? `<strong>${g}</strong>` : n;
+            return `<li class="rank-item">
+      <span class="rank-pos">${String(i + 1).padStart(2, "0")}</span>
+      <span class="rank-name">${label}</span>
+      <div class="rank-bar-bg"><div class="rank-bar" style="width:${Math.round((q / mx) * 100)}%;background:var(--laranja)"></div></div>
+      <span class="rank-val">${q}</span>
+    </li>`;
+          })
+          .join("");
+      }
+
+      function renderRankBase(d) {
+        const entr = contar(d, (r) => {
+          const b = String(r.base).trim().toLowerCase();
+          if (!b || b === "​" || b.includes("ccocatedral")) return "Brasília";
+          const c = r.base.trim();
+          return c.charAt(0).toUpperCase() + c.slice(1);
+        }).slice(0, 6);
+        const mx = entr[0]?.[1] || 1;
+        document.getElementById("rankBase").innerHTML = entr
+          .map(([n, q]) => {
+            return `<li class="rank-item">
+      <span class="rank-name">${n}</span>
+      <div class="rank-bar-bg"><div class="rank-bar" style="width:${Math.round((q / mx) * 100)}%;background:var(--laranja)"></div></div>
+      <span class="rank-val">${Math.round((q / d.length) * 100)}%</span>
+    </li>`;
+          })
+          .join("");
+      }
+
+      function renderMec(d) {
+        killChart("mec");
+        const mecs = d.filter((r) =>
+          normTipo(r.tipo)
+            .toLowerCase()
+            .match(/mecân|mecanica/),
+        );
+        const counts = {};
+        Object.keys(MEC_MAP).forEach((k) => (counts[k] = 0));
+        counts["Outros mecânicos"] = 0;
+        mecs.forEach((r) => {
+          const txt = (r.tipo + " " + r.detalhes).toLowerCase();
+          let ok = false;
+          for (const [cat, kws] of Object.entries(MEC_MAP)) {
+            if (kws.some((k) => txt.includes(k))) {
+              counts[cat]++;
+              ok = true;
+              break;
+            }
+          }
+          if (!ok) counts["Outros mecânicos"]++;
+        });
+        const entr = Object.entries(counts)
+          .filter(([, v]) => v > 0)
+          .sort((a, b) => b[1] - a[1]);
+        charts["mec"] = new Chart(document.getElementById("mecChart"), {
+          type: "bar",
+          data: {
+            labels: entr.map((e) => e[0]),
+            datasets: [
+              {
+                data: entr.map((e) => e[1]),
+                backgroundColor: "#3b82c4",
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: { stepSize: 1, color: GT },
+                grid: { color: GC },
+              },
+              y: {
+                ticks: { color: GT, font: { size: 11 } },
+                grid: { display: false },
+              },
+            },
+          },
+        });
+      }
+
+      function renderPsg(d) {
+        const psg = contar(d.filter(ehPsg), (r) => normTipo(r.tipo));
+        const el = document.getElementById("psgList");
+        if (!psg.length) {
+          el.innerHTML =
+            '<div class="insight">Nenhum incidente com passageiro no período.</div>';
+          return;
+        }
+        el.innerHTML = psg
+          .map(
+            ([t, q]) =>
+              `<div class="alert-row"><span>${t}</span><span class="badge b-red">${q} caso${q > 1 ? "s" : ""}</span></div>`,
+          )
+          .join("");
+        el.innerHTML += `<div class="insight"><strong>${psg.reduce((a, [, v]) => a + v, 0)} incidentes</strong> com passageiros. Exige protocolo de resposta e revisão de treinamento.</div>`;
+      }
+
+      function renderReinc(d) {
+        killChart("reinc");
+        const entr = contar(d, (r) => r.prefixo)
+          .filter(([, v]) => v > 1)
+          .slice(0, 12);
+        if (!entr.length) return;
+        const mx = entr[0][1];
+        charts["reinc"] = new Chart(document.getElementById("reincChart"), {
+          type: "bar",
+          data: {
+            labels: entr.map((e) => e[0]),
+            datasets: [
+              {
+                data: entr.map((e) => e[1]),
+                backgroundColor: (ctx) => {
+                  const v = ctx.raw;
+                  return v === mx
+                    ? "#f47920"
+                    : v >= mx * 0.6
+                      ? "#f0c040"
+                      : "#3b82c4";
+                },
+                borderRadius: 5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                ticks: { color: GT, font: { size: 11 }, autoSkip: false },
+                grid: { display: false },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1, color: GT },
+                grid: { color: GC },
+              },
+            },
+          },
+        });
+      }
+
+      // ── DOCUMENTOS ────────────────────────────────────────────
+      function renderDocs(d) {
+        const SVGDOC =
+          '<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
+        const SVGSRCH =
+          '<svg viewBox="0 0 24 24" style="width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+
+        const comDoc = d.filter(
+          (r) =>
+            r.arquivo &&
+            r.arquivo !== "" &&
+            r.arquivo !== "File" &&
+            r.arquivo !== "Arquivo",
+        );
+        const tb = document.getElementById("docsBody");
+        const countEl = document.getElementById("docsCount");
+        if (countEl) {
+          if (comDoc.length) {
+            countEl.textContent = comDoc.length + (comDoc.length === 1 ? " doc" : " docs");
+            countEl.style.display = "";
+          } else {
+            countEl.style.display = "none";
+          }
+        }
+
+        if (!comDoc.length) {
+          tb.innerHTML =
+            '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--texto3)">Nenhum documento encontrado no período filtrado.</td></tr>';
+          return;
+        }
+
+        tb.innerHTML = comDoc
+          .slice(0, 150)
+          .map(function (r, idx) {
+            var dataFmt = fmtData(r.data);
+            var obs =
+              r.observacao &&
+              r.observacao !== "Observações" &&
+              r.observacao.trim() !== ""
+                ? r.observacao
+                : "—";
+            var nomeCurto =
+              r.arquivo.length > 55
+                ? r.arquivo.substring(0, 55) + "…"
+                : r.arquivo;
+            var docCell;
+
+            if (r.arquivoUrl) {
+              docCell =
+                '<a href="' +
+                r.arquivoUrl +
+                '" target="_blank" class="doc-link" title="' +
+                r.arquivo +
+                '">' +
+                SVGDOC +
+                " " +
+                nomeCurto +
+                "</a>";
+            } else if (r.arquivo) {
+              var cellId = "doc-cell-" + idx;
+              var nomeEsc = r.arquivo
+                .replace(/\\/g, "\\\\")
+                .replace(/'/g, "\\'");
+              docCell =
+                '<span id="' +
+                cellId +
+                '">' +
+                '<button class="btn-buscar-doc" onclick="buscarDoc(\'' +
+                nomeEsc +
+                "','" +
+                cellId +
+                '\')" title="Buscar no Google Drive">' +
+                SVGSRCH +
+                " Buscar no Drive</button>" +
+                '<span style="font-size:11px;color:var(--texto3);margin-left:8px" title="' +
+                r.arquivo +
+                '">' +
+                nomeCurto +
+                "</span>" +
+                "</span>";
+            } else {
+              docCell = '<span class="no-doc">—</span>';
+            }
+
+            return (
+              "<tr>" +
+              "<td>" +
+              dataFmt +
+              "</td>" +
+              "<td><strong>" +
+              r.prefixo +
+              "</strong></td>" +
+              "<td>" +
+              normTipo(r.tipo) +
+              "</td>" +
+              "<td>" +
+              docCell +
+              "</td>" +
+              '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' +
+              obs +
+              '">' +
+              obs +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+      }
+
+      function buscarDoc(nomeArquivo, cellId) {
+        var cell = document.getElementById(cellId);
+        if (!cell) return;
+        var btn = cell.querySelector("button");
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "⏳ Buscando…";
+        }
+
+        google.script.run
+          .withSuccessHandler(function (url) {
+            var SVGDOC =
+              '<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
+            if (url) {
+              var nomeCurto =
+                nomeArquivo.length > 55
+                  ? nomeArquivo.substring(0, 55) + "…"
+                  : nomeArquivo;
+              cell.innerHTML =
+                '<a href="' +
+                url +
+                '" target="_blank" class="doc-link" title="' +
+                nomeArquivo +
+                '">' +
+                SVGDOC +
+                " " +
+                nomeCurto +
+                "</a>";
+              window.open(url, "_blank");
+            } else {
+              if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = "⚠ Não encontrado";
+                btn.style.color = "var(--vermelho)";
+              }
+            }
+          })
+          .withFailureHandler(function () {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = "⚠ Erro ao buscar";
+              btn.style.color = "var(--vermelho)";
+            }
+          })
+          .getUrlArquivo(nomeArquivo);
+      }
+
+      // ── RECOMENDAÇÕES ─────────────────────────────────────────
+      function renderRecs(d) {
+        const recs = [];
+        const pfxs = contar(d, (r) => r.prefixo);
+        const tipos = contar(d, (r) => normTipo(r.tipo));
+        const psgN = d.filter(ehPsg).length;
+        const porDt = contar(d, (r) => r.data).sort((a, b) => b[1] - a[1]);
+
+        if (pfxs[0]?.[1] >= 3)
+          recs.push(
+            `<strong>Veículo ${pfxs[0][0]}</strong> com ${pfxs[0][1]} ocorrências — priorizar revisão completa.`,
+          );
+
+        const mecP = Math.round(
+          ((tipos.find(([t]) => t.toLowerCase().includes("mecân"))?.[1] || 0) /
+            d.length) *
+            100,
+        );
+        const arP = Math.round(
+          ((tipos.find(([t]) => t.toLowerCase().includes("ar c"))?.[1] || 0) /
+            d.length) *
+            100,
+        );
+        if (mecP + arP > 25)
+          recs.push(
+            `<strong>Mecânica + AR condicionado</strong> somam ${mecP + arP}% — avaliar manutenção preventiva sazonal.`,
+          );
+
+        const pnP = Math.round(
+          ((tipos.find(([t]) => t.toLowerCase().includes("pneu"))?.[1] || 0) /
+            d.length) *
+            100,
+        );
+        if (pnP >= 10)
+          recs.push(
+            `<strong>Pneus com ${pnP}%</strong> do volume — verificar rotas e estado das rodovias.`,
+          );
+
+        if (psgN >= 2)
+          recs.push(
+            `<strong>${psgN} incidentes com passageiros</strong> — revisar protocolo e treinamento de motoristas.`,
+          );
+
+        if (porDt[0]?.[1] >= 8) {
+          const dt = fmtData(porDt[0][0]);
+          recs.push(
+            `<strong>Pico em ${dt}</strong> com ${porDt[0][1]} registros — investigar evento ou escala crítica.`,
+          );
+        }
+
+        if (!recs.length)
+          recs.push("Nenhuma recomendação crítica no período selecionado.");
+
+        document.getElementById("recsGrid").innerHTML = recs
+          .map(
+            (r, i) =>
+              `<div class="rec-item"><span class="rec-num">0${i + 1}</span><div class="rec-text">${r}</div></div>`,
+          )
+          .join("");
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,3096 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BI Operacional · Viação Catedral</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap");
+
+      :root {
+        --bg: #07080a;
+        --surface: #0d0f13;
+        --surface2: #12151b;
+        --border: rgba(255, 255, 255, 0.07);
+        --border2: rgba(255, 255, 255, 0.12);
+        --text1: #f1f3f6;
+        --text2: #9aa0b0;
+        --text3: #5a6070;
+        --accent: #f97316;
+        --accent2: #fb923c;
+        --blue: #3b82f6;
+        --pink: #ec4899;
+        --green: #22c55e;
+        --yellow: #eab308;
+        --red: #ef4444;
+        --font-display: "Bebas Neue", sans-serif;
+        --font-body: "DM Sans", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text1);
+        font-family: var(--font-body);
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+      }
+
+      /* ═══════════════════════════════════════
+         LAYOUT PRINCIPAL
+      ═══════════════════════════════════════ */
+      .root {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        position: relative;
+      }
+
+      /* Barra de progresso autoplay */
+      .autoplay-bar {
+        height: 3px;
+        background: var(--border);
+        position: relative;
+        flex-shrink: 0;
+      }
+      .autoplay-fill {
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        transition: width 0.1s linear;
+        transform-origin: left;
+      }
+      .autoplay-fill.animating {
+        transition: width linear;
+      }
+
+      /* Header */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 40px;
+        height: 56px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(7, 8, 10, 0.9);
+        backdrop-filter: blur(12px);
+        flex-shrink: 0;
+        gap: 24px;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .logo-mark {
+        font-family: var(--font-display);
+        font-size: 22px;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        white-space: nowrap;
+      }
+
+      .header-sep {
+        width: 1px;
+        height: 24px;
+        background: var(--border2);
+      }
+
+      .header-periodo {
+        font-size: 13px;
+        color: var(--text2);
+        white-space: nowrap;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .clock {
+        font-family: var(--font-display);
+        font-size: 24px;
+        letter-spacing: 0.05em;
+        color: var(--text1);
+        min-width: 72px;
+        text-align: right;
+      }
+
+      .slide-dots {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--border2);
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .dot.active {
+        background: var(--accent);
+        width: 18px;
+        border-radius: 3px;
+      }
+
+      .btn-ctrl {
+        background: transparent;
+        border: 1px solid var(--border2);
+        color: var(--text2);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        cursor: pointer;
+        font-family: var(--font-body);
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .btn-ctrl:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .btn-ctrl.active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #111;
+        font-weight: 600;
+      }
+
+      /* Corpo do slide */
+      .slide-body {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        padding: 32px 40px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        opacity: 0;
+        transform: translateX(40px);
+        transition:
+          opacity 0.4s ease,
+          transform 0.4s ease;
+        pointer-events: none;
+      }
+      .slide.active {
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: all;
+      }
+      .slide.exit-left {
+        opacity: 0;
+        transform: translateX(-40px);
+      }
+
+      /* ═══════════════════════════════════════
+         SLIDE: CAPA
+      ═══════════════════════════════════════ */
+      .slide-titulo-label {
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 500;
+      }
+
+      .slide-titulo-h1 {
+        font-family: var(--font-display);
+        font-size: 52px;
+        line-height: 1;
+        letter-spacing: 0.04em;
+        color: var(--text1);
+      }
+
+      .slide-sub {
+        font-size: 14px;
+        color: var(--text2);
+        max-width: 560px;
+      }
+
+      /* Grid de KPIs */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .kpi-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 24px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .kpi-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        border-radius: 14px 14px 0 0;
+      }
+      .kpi-card.c-orange::before {
+        background: var(--accent);
+      }
+      .kpi-card.c-blue::before {
+        background: var(--blue);
+      }
+      .kpi-card.c-pink::before {
+        background: var(--pink);
+      }
+      .kpi-card.c-green::before {
+        background: var(--green);
+      }
+      .kpi-card.c-yellow::before {
+        background: var(--yellow);
+      }
+      .kpi-card.c-red::before {
+        background: var(--red);
+      }
+
+      .kpi-label {
+        font-size: 11px;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+
+      .kpi-value {
+        font-family: var(--font-display);
+        font-size: 64px;
+        line-height: 1;
+        letter-spacing: 0.02em;
+      }
+      .kpi-value.c-orange {
+        color: var(--accent);
+      }
+      .kpi-value.c-blue {
+        color: var(--blue);
+      }
+      .kpi-value.c-pink {
+        color: var(--pink);
+      }
+      .kpi-value.c-green {
+        color: var(--green);
+      }
+      .kpi-value.c-yellow {
+        color: var(--yellow);
+      }
+      .kpi-value.c-red {
+        color: var(--red);
+      }
+
+      .kpi-sub {
+        font-size: 12px;
+        color: var(--text3);
+        margin-top: 6px;
+      }
+
+      /* Linha de conteúdo embaixo dos KPIs */
+      .slide-cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .slide-panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 24px;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .panel-title {
+        font-size: 11px;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-weight: 500;
+        margin-bottom: 16px;
+        flex-shrink: 0;
+      }
+
+      .panel-chart-wrap {
+        flex: 1;
+        position: relative;
+        min-height: 0;
+      }
+
+      /* ═══════════════════════════════════════
+         SLIDE: TIPO
+      ═══════════════════════════════════════ */
+      .tipo-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+        flex-shrink: 0;
+      }
+
+      .tipo-kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        flex-shrink: 0;
+      }
+
+      .tipo-kpi {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 20px;
+      }
+
+      .tipo-kpi .kpi-value {
+        font-size: 52px;
+      }
+
+      .tipo-charts {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 16px;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .tipo-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        overflow: hidden;
+      }
+
+      .tipo-list-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+      }
+
+      .tipo-list-rank {
+        font-family: var(--font-display);
+        font-size: 20px;
+        color: var(--text3);
+        min-width: 28px;
+        text-align: right;
+      }
+
+      .tipo-list-label {
+        flex: 1;
+        color: var(--text2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .tipo-list-bar-wrap {
+        flex: 1;
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .tipo-list-bar {
+        height: 100%;
+        border-radius: 3px;
+        background: var(--accent);
+        transition: width 0.6s ease;
+      }
+
+      .tipo-list-count {
+        font-family: var(--font-display);
+        font-size: 18px;
+        color: var(--text1);
+        min-width: 36px;
+        text-align: right;
+      }
+
+      /* ═══════════════════════════════════════
+         PAINEL DETALHES COLUNA C
+      ═══════════════════════════════════════ */
+      .detalhes-feed {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border2) transparent;
+      }
+      .detalhes-feed::-webkit-scrollbar {
+        width: 5px;
+      }
+      .detalhes-feed::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .detalhes-feed::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.35);
+        border-radius: 999px;
+      }
+
+      .detalhe-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 7px 10px;
+        background: var(--surface2);
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        transition: border-color 0.2s;
+      }
+      .detalhe-item:hover {
+        border-color: var(--border2);
+      }
+
+      .detalhe-prefixo {
+        font-family: var(--font-display);
+        font-size: 15px;
+        color: var(--accent);
+        min-width: 44px;
+        flex-shrink: 0;
+        line-height: 1.3;
+      }
+
+      .detalhe-texto {
+        font-size: 12px;
+        color: var(--text2);
+        line-height: 1.45;
+        flex: 1;
+      }
+
+      .detalhe-data {
+        font-size: 10px;
+        color: var(--text3);
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      /* ═══════════════════════════════════════
+         SLIDE: PAX / PSG
+      ═══════════════════════════════════════ */
+      .pax-layout {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 16px;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .pax-ranking {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 4px;
+      }
+
+      .pax-rank-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        background: var(--surface2);
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        transition: border-color 0.2s;
+      }
+      .pax-rank-item:first-child {
+        border-color: rgba(236, 72, 153, 0.4);
+        background: rgba(236, 72, 153, 0.06);
+      }
+      .pax-rank-item:nth-child(2) {
+        border-color: rgba(236, 72, 153, 0.2);
+      }
+
+      .pax-rank-pos {
+        font-family: var(--font-display);
+        font-size: 22px;
+        color: var(--text3);
+        min-width: 30px;
+        text-align: center;
+      }
+      .pax-rank-item:first-child .pax-rank-pos {
+        color: var(--pink);
+      }
+
+      .pax-rank-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .pax-rank-nome {
+        font-size: 13px;
+        color: var(--text1);
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .pax-rank-detalhe {
+        font-size: 10px;
+        color: var(--text3);
+        margin-top: 1px;
+      }
+
+      .pax-rank-bar-wrap {
+        width: 80px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .pax-rank-bar {
+        height: 100%;
+        border-radius: 2px;
+        background: var(--pink);
+      }
+
+      .pax-rank-count {
+        font-family: var(--font-display);
+        font-size: 22px;
+        color: var(--pink);
+        min-width: 32px;
+        text-align: right;
+      }
+
+      .pax-table-wrap,
+      .pax-ranking {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border2) transparent;
+      }
+
+      .pax-table-wrap::-webkit-scrollbar,
+      .pax-ranking::-webkit-scrollbar {
+        width: 6px;
+      }
+      .pax-table-wrap::-webkit-scrollbar-track,
+      .pax-ranking::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .pax-table-wrap::-webkit-scrollbar-thumb,
+      .pax-ranking::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.45);
+        border-radius: 999px;
+      }
+      .pax-table-wrap::-webkit-scrollbar-thumb:hover,
+      .pax-ranking::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.75);
+      }
+
+      .pax-table-wrap {
+        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .pax-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      .pax-table th {
+        text-align: left;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text3);
+        padding: 0 10px 8px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 500;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        background: var(--surface);
+      }
+
+      .pax-table td {
+        padding: 7px 10px;
+        color: var(--text2);
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+        max-width: 180px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .pax-table tr:hover td {
+        background: var(--surface2);
+      }
+      .pax-table .td-prefixo {
+        font-family: var(--font-display);
+        font-size: 16px;
+        color: var(--text1);
+      }
+      .pax-table .td-motorista {
+        color: var(--pink);
+        font-weight: 500;
+      }
+      .pax-table .td-plantonista {
+        color: var(--blue);
+      }
+      .pax-table .td-data {
+        color: var(--text3);
+        font-size: 11px;
+      }
+
+      /* ═══════════════════════════════════════
+         AVARIA — Labels nas partes do ônibus
+      ═══════════════════════════════════════ */
+      .avaria-bus-label {
+        position: absolute;
+        font-family: var(--font-display);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: rgba(241, 243, 246, 0.75);
+        pointer-events: none;
+        white-space: nowrap;
+        text-align: center;
+        line-height: 1;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+        transition:
+          color 0.4s ease,
+          opacity 0.4s ease;
+        z-index: 2;
+      }
+      .avaria-bus-label.label-hot {
+        color: rgba(241, 243, 246, 1);
+      }
+      .avaria-bus-label .label-count {
+        display: block;
+        font-size: 16px;
+        margin-top: 2px;
+        color: var(--accent);
+      }
+
+      /* ═══════════════════════════════════════
+         SLIDE: VAZIO
+      ═══════════════════════════════════════ */
+      .slide-empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        color: var(--text3);
+      }
+      .slide-empty-icon {
+        font-size: 48px;
+        opacity: 0.3;
+      }
+
+      /* ═══════════════════════════════════════
+         MODAL
+      ═══════════════════════════════════════ */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(8px);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-overlay.hidden {
+        display: none;
+      }
+
+      .modal-box {
+        width: min(700px, 94vw);
+        max-height: 85vh;
+        background: #0b0d11;
+        border: 1px solid var(--border2);
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+      }
+
+      .modal-header {
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .modal-title {
+        font-family: var(--font-display);
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        color: var(--text1);
+      }
+      .modal-sub {
+        font-size: 12px;
+        color: var(--text2);
+        margin-top: 4px;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        color: var(--text3);
+        font-size: 22px;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+      }
+      .modal-close:hover {
+        color: var(--text1);
+      }
+
+      .modal-body {
+        padding: 20px 24px 12px;
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      .modal-footer {
+        padding: 14px 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .modal-brand-footer {
+        padding: 12px 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .modal-brand-footer-left {
+        font-family: var(--font-display);
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        color: var(--accent);
+      }
+      .modal-brand-footer-right {
+        font-size: 10px;
+        color: var(--text3);
+        text-align: right;
+        line-height: 1.6;
+      }
+      .modal-brand-footer-right strong {
+        color: var(--text2);
+        font-weight: 600;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .form-label {
+        font-size: 11px;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 500;
+      }
+
+      .form-input {
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        color: var(--text1);
+        border-radius: 8px;
+        padding: 9px 14px;
+        font-size: 14px;
+        font-family: var(--font-body);
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .form-input:focus {
+        border-color: var(--accent);
+      }
+      .form-input::-webkit-calendar-picker-indicator {
+        filter: invert(0.7);
+        cursor: pointer;
+      }
+
+      .quick-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      .chip {
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        color: var(--text2);
+        border-radius: 20px;
+        padding: 5px 14px;
+        font-size: 12px;
+        cursor: pointer;
+        font-family: var(--font-body);
+        transition: all 0.2s;
+      }
+      .chip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .resumo-box {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: var(--text2);
+        line-height: 1.6;
+      }
+
+      .resumo-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .badge {
+        font-size: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        color: var(--text2);
+        border-radius: 20px;
+        padding: 3px 10px;
+      }
+
+      .tipos-section {
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+      }
+
+      .tipos-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .tipos-label {
+        font-size: 12px;
+        color: var(--text2);
+      }
+      .tipos-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .tipos-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .tipo-tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 20px;
+        padding: 5px 12px;
+        cursor: pointer;
+        transition: border-color 0.2s;
+        font-size: 12px;
+        color: var(--text2);
+      }
+      .tipo-tag:hover {
+        border-color: var(--accent);
+      }
+      .tipo-tag input {
+        accent-color: var(--accent);
+      }
+      .tipo-tag-count {
+        font-size: 11px;
+        color: var(--text3);
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        border: 1px solid var(--accent);
+        color: #111;
+        border-radius: 20px;
+        padding: 8px 20px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: var(--font-body);
+        transition: filter 0.2s;
+      }
+      .btn-primary:hover {
+        filter: brightness(1.1);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        border: 1px solid var(--border2);
+        color: var(--text2);
+        border-radius: 20px;
+        padding: 8px 20px;
+        font-size: 13px;
+        cursor: pointer;
+        font-family: var(--font-body);
+        transition: all 0.2s;
+      }
+      .btn-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* Scan line sutil */
+      .scanline {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 200;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 3px,
+          rgba(0, 0, 0, 0.04) 3px,
+          rgba(0, 0, 0, 0.04) 4px
+        );
+      }
+
+      /* ═══════════════════════════════════════
+         AVARIA — Ônibus 2D
+      ═══════════════════════════════════════ */
+      .avaria-bus-wrap {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .avaria-bus {
+        position: relative;
+        width: 100%;
+        max-width: 480px;
+        aspect-ratio: 5 / 1;
+        border-radius: 16px;
+        background: linear-gradient(90deg, #020617, #020617, #020617);
+        box-shadow: inset 0 0 0 1px var(--border);
+        overflow: visible;
+      }
+
+      .avaria-bus-frontal,
+      .avaria-bus-parabrisa,
+      .avaria-bus-lateral-esq,
+      .avaria-bus-lateral-dir,
+      .avaria-bus-traseira,
+      .avaria-bus-espelho-esq,
+      .avaria-bus-espelho-dir {
+        position: absolute;
+        border-radius: 8px;
+        background: rgba(148, 163, 184, 0.15);
+        transition:
+          background 0.4s ease,
+          box-shadow 0.4s ease,
+          transform 0.2s ease;
+      }
+
+      .avaria-bus-frontal {
+        left: 0%;
+        top: 20%;
+        bottom: 20%;
+        width: 14%;
+      }
+
+      .avaria-bus-parabrisa {
+        left: 4%;
+        top: 22%;
+        bottom: 45%;
+        width: 8%;
+        border-radius: 6px;
+      }
+
+      .avaria-bus-lateral-esq {
+        left: 14%;
+        top: 12%;
+        bottom: 55%;
+        width: 40%;
+      }
+
+      .avaria-bus-lateral-dir {
+        left: 14%;
+        top: 55%;
+        bottom: 12%;
+        width: 40%;
+      }
+
+      .avaria-bus-traseira {
+        right: 0%;
+        top: 20%;
+        bottom: 20%;
+        width: 14%;
+      }
+
+      .avaria-bus-espelho-esq,
+      .avaria-bus-espelho-dir {
+        width: 6%;
+        height: 18%;
+        top: 8%;
+        border-radius: 999px;
+      }
+
+      .avaria-bus-espelho-esq {
+        left: -3%;
+      }
+      .avaria-bus-espelho-dir {
+        left: 11%;
+      }
+
+      .avaria-bus-hot {
+        box-shadow:
+          0 0 0 1px rgba(248, 250, 252, 0.4),
+          0 0 18px rgba(249, 115, 22, 0.55);
+        transform: translateY(-1px);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="scanline"></div>
+
+    <div class="root">
+      <div class="autoplay-bar">
+        <div class="autoplay-fill" id="autoplayFill"></div>
+      </div>
+
+      <header class="header">
+        <div class="header-left">
+          <div class="logo-mark">VIAÇÃO CATEDRAL</div>
+          <div class="header-sep"></div>
+          <div class="header-periodo" id="headerPeriodo">BI OPERACIONAL</div>
+        </div>
+        <div class="header-right">
+          <div class="slide-dots" id="slideDots"></div>
+          <button class="btn-ctrl" id="btnAutoplay" onclick="toggleAutoplay()">
+            ⏵ Auto
+          </button>
+          <button class="btn-ctrl" onclick="abrirModal()">⚙ Configurar</button>
+          <div class="clock" id="clock">00:00</div>
+        </div>
+      </header>
+
+      <main class="slide-body" id="slideBody"></main>
+    </div>
+
+    <!-- Modal de configuração -->
+    <div class="modal-overlay hidden" id="modalOverlay">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">CONFIGURAR APRESENTAÇÃO</div>
+            <div class="modal-sub" id="modalSub">
+              Defina o período e os tipos de ocorrência.
+            </div>
+          </div>
+          <button class="modal-close" onclick="fecharModal()">×</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Data inicial</label>
+              <input type="date" id="apDataIni" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label class="form-label">Data final</label>
+              <input type="date" id="apDataFim" class="form-input" />
+            </div>
+          </div>
+          <div class="quick-chips">
+            <button class="chip" onclick="setPeriodoHoje()">Hoje</button>
+            <button class="chip" onclick="setPeriodoUltimos7()">
+              Últimos 7 dias
+            </button>
+            <button class="chip" onclick="setPeriodoMesAtual()">
+              Mês atual
+            </button>
+          </div>
+          <div class="resumo-box" id="resumoBox">
+            Informe o período e clique em <strong>Carregar dados</strong> para
+            ver o resumo.
+            <div class="resumo-badges" id="resumoBadges"></div>
+          </div>
+          <div class="tipos-section" id="tiposSection">
+            <p style="font-size: 13px; color: var(--text3)">
+              Os tipos de ocorrência aparecerão após carregar os dados.
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="fecharModal()">
+            Cancelar
+          </button>
+          <button class="btn-primary" id="btnIniciar" onclick="iniciar()">
+            Carregar dados
+          </button>
+        </div>
+        <div class="modal-brand-footer">
+          <div class="modal-brand-footer-left">BI OPERACIONAL · VIAÇÃO CATEDRAL</div>
+          <div class="modal-brand-footer-right">
+            Desenvolvido por <strong>Lucas Inácio</strong><br>
+            Analista de Dados · Viação Catedral
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ══════════════════════════════════════════
+      // ESTADO
+      // ══════════════════════════════════════════
+      let dados = [];
+      let slides = [];
+      let slideIdx = 0;
+      let autoplay = false;
+      let autoplayTimer = null;
+      let autoplayInterval = 20000;
+      let autoplayStart = null;
+      let autoplayRAF = null;
+      let dadosCarregados = false;
+      let periodoIni = "";
+      let periodoFim = "";
+      let tiposDisponiveis = [];
+      let chartInstances = {};
+      let intervaloDados = null;
+      let tiposSelecionados = new Set();
+      let gestorPorBase = {};
+
+      // ══════════════════════════════════════════
+      // UTILS
+      // ══════════════════════════════════════════
+      function normTipo(t) {
+        return String(t)
+          .trim()
+          .replace(/\*/g, "")
+          .replace(/\s+/g, " ")
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(" ");
+      }
+
+      function contar(arr, fn) {
+        const m = {};
+        arr.forEach((r) => {
+          const k = fn(r);
+          if (!k || String(k).trim() === "") return; // ignora vazios
+          m[k] = (m[k] || 0) + 1;
+        });
+        return Object.entries(m).sort((a, b) => b[1] - a[1]);
+      }
+
+      const PSG_KW = [
+        "psg",
+        "passageiro",
+        "atendimento medico",
+        "surto",
+        "importunação",
+        "importunacao",
+        "deixado",
+        "deixou",
+        "pax",
+      ];
+      function ehPsg(r) {
+        return PSG_KW.some((k) =>
+          (r.tipo + " " + r.detalhes).toLowerCase().includes(k),
+        );
+      }
+      function ehTipoPax(tipo) {
+        const t = String(tipo).toLowerCase();
+        return (
+          t.includes("pax") || t.includes("psg") || t.includes("passageiro")
+        );
+      }
+      function ehTecnica(r) {
+        const t = normTipo(r.tipo).toLowerCase();
+        return (
+          !t.includes("psg") &&
+          !t.includes("sac") &&
+          !t.includes("passageiro") &&
+          (t.includes("mecân") ||
+            t.includes("mecanica") ||
+            t.includes("pneu") ||
+            t.includes("suspens") ||
+            t.includes("avaria"))
+        );
+      }
+
+      function fmtData(d) {
+        if (!d) return "—";
+        return new Date(d + "T12:00:00").toLocaleDateString("pt-BR");
+      }
+
+      function toIso(dt) {
+        const y = dt.getFullYear(),
+          m = String(dt.getMonth() + 1).padStart(2, "0"),
+          d = String(dt.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      function stripAcentos(str) {
+        return String(str || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+      }
+
+      // ── Detecção de tipo específico pelo título normalizado ──
+      function detectarSubtipo(titulo) {
+        const t = stripAcentos(String(titulo || "").toLowerCase());
+        if (t.includes("mecan") || t.includes("mecani")) return "mecanica";
+        if (t.includes("avaria")) return "avaria";
+        if (t.includes("pane seca")) return "pane_seca";
+        if (t.includes("sem motorista")) return "sem_motorista";
+        if (t.includes("vazamento")) return "vazamento";
+        if (t.includes("sac")) return "sac";
+        if (t.includes("surto")) return "surto";
+        if (t.includes("psg") || t.includes("pax") || t.includes("passageiro"))
+          return "pax";
+        if (t.includes("outros") || t.includes("outro")) return "outros";
+        return "generico";
+      }
+
+      function classificarAvariaPorParte(detalhes) {
+        const raw = String(detalhes || "").toLowerCase();
+        const s = stripAcentos(raw);
+        const has = (kw) => s.includes(kw);
+        const any = (arr) => arr.some(has);
+
+        if (
+          any([
+            "parabrisa",
+            "para brisa",
+            "para-brisa",
+            "parabriza",
+            "para briza",
+            "para-briza",
+            "vidro dianteiro",
+            "vidro frontal",
+            "vidro da frente",
+          ])
+        )
+          return "parabrisa";
+        if (any(["retrovisor", "retrov", "espelho", "espelh"]))
+          return "espelho";
+
+        const isFrontalLike =
+          any(["frontal", "dianteira", "frente"]) ||
+          any(["canto dianteiro", "canto frontal"]);
+        if (isFrontalLike && any(["direita", "dir"])) return "frontal_dir";
+        if (isFrontalLike && any(["esquerda", "esq"])) return "frontal_esq";
+        if (
+          any([
+            "traseira",
+            "traseiro",
+            "trase",
+            "traz",
+            "para choque traseiro",
+            "parachoque traseiro",
+          ])
+        )
+          return "traseira";
+        if (any(["lateral direita", "lado direito", "direita", "dir"]))
+          return "lateral_dir";
+        if (any(["lateral esquerda", "lado esquerdo", "esquerda", "esq"]))
+          return "lateral_esq";
+        if (any(["frontal", "dianteira", "frente"])) return "frontal";
+        return "indefinida";
+      }
+
+      // ══════════════════════════════════════════
+      // RELÓGIO
+      // ══════════════════════════════════════════
+      function tickClock() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, "0");
+        const m = String(now.getMinutes()).padStart(2, "0");
+        document.getElementById("clock").textContent = `${h}:${m}`;
+      }
+      setInterval(tickClock, 1000);
+      tickClock();
+
+      // ══════════════════════════════════════════
+      // REQUISIÇÕES
+      // ══════════════════════════════════════════
+      function atualizarDados() {
+        if (!periodoIni || !periodoFim) return;
+        console.log("Atualizando dados automaticamente...");
+        iniciarBarraProgresso();
+
+        google.script.run
+          .withSuccessHandler((json) => onRefreshCarregado(json)) // ← handler diferente
+          .withFailureHandler(onErro)
+          .getDados(periodoIni, periodoFim);
+      }
+
+      function onRefreshCarregado(json) {
+        try {
+          dados = JSON.parse(json).filter((r) => r.data);
+        } catch (e) {
+          onErro(e);
+          return;
+        }
+        // atualiza apenas os dados e re-renderiza, sem chamar iniciarAutoRefresh
+        const idxAtual = Math.min(slideIdx, slides.length - 1);
+        construirSlides([...tiposSelecionados]);
+        mostrarSlide(Math.min(idxAtual, slides.length - 1));
+      }
+
+      function iniciarAutoRefresh() {
+        if (intervaloDados) clearInterval(intervaloDados);
+
+        atualizarDados();
+
+        intervaloDados = setInterval(() => {
+          atualizarDados();
+        }, duracao);
+      }
+
+      let tempoInicio = null;
+      let duracao = 15 * 60 * 1000; // 15 minutos
+      let animationFrameId = null;
+
+      function iniciarBarraProgresso() {
+        tempoInicio = Date.now();
+
+        function animar() {
+          const agora = Date.now();
+          const decorrido = agora - tempoInicio;
+          const progresso = Math.min(decorrido / duracao, 1);
+
+          document.getElementById("autoplayFill").style.width =
+            progresso * 100 + "%";
+
+          if (progresso < 1) {
+            animationFrameId = requestAnimationFrame(animar);
+          }
+        }
+
+        cancelAnimationFrame(animationFrameId);
+        animar();
+      }
+
+      // ══════════════════════════════════════════
+      // PERÍODO
+      // ══════════════════════════════════════════
+      function setPeriodoHoje() {
+        const iso = toIso(new Date());
+        document.getElementById("apDataIni").value = iso;
+        document.getElementById("apDataFim").value = iso;
+      }
+      function setPeriodoUltimos7() {
+        const fim = new Date(),
+          ini = new Date();
+        ini.setDate(fim.getDate() - 6);
+        document.getElementById("apDataIni").value = toIso(ini);
+        document.getElementById("apDataFim").value = toIso(fim);
+      }
+      function setPeriodoMesAtual() {
+        const hoje = new Date(),
+          ano = hoje.getFullYear(),
+          mes = String(hoje.getMonth() + 1).padStart(2, "0");
+        const ultimo = new Date(ano, hoje.getMonth() + 1, 0).getDate();
+        document.getElementById("apDataIni").value = `${ano}-${mes}-01`;
+        document.getElementById("apDataFim").value =
+          `${ano}-${mes}-${String(ultimo).padStart(2, "0")}`;
+      }
+
+      // ══════════════════════════════════════════
+      // MODAL
+      // ══════════════════════════════════════════
+      function abrirModal() {
+        pausarAutoplay();
+        document.getElementById("modalOverlay").classList.remove("hidden");
+      }
+      function fecharModal() {
+        document.getElementById("modalOverlay").classList.add("hidden");
+      }
+
+      // ══════════════════════════════════════════
+      // CARREGAR / INICIAR
+      // ══════════════════════════════════════════
+      function iniciar() {
+        if (!dadosCarregados) {
+          let ini = document.getElementById("apDataIni").value;
+          let fim = document.getElementById("apDataFim").value;
+          if (!ini || !fim) {
+            alert("Informe data inicial e final.");
+            return;
+          }
+          if (ini > fim) {
+            const tmp = ini;
+            ini = fim;
+            fim = tmp;
+          }
+
+          document.getElementById("btnIniciar").textContent = "Carregando...";
+          document.getElementById("btnIniciar").disabled = true;
+          document.getElementById("modalSub").textContent =
+            `Buscando dados de ${fmtData(ini)} a ${fmtData(fim)}...`;
+
+          google.script.run
+            .withSuccessHandler((json) => onDadosCarregados(json, ini, fim))
+            .withFailureHandler(onErro)
+            .getDados(ini, fim);
+          return;
+        }
+
+        const selecionados = Array.from(
+          document.querySelectorAll(".ap-cfg-tipo:checked"),
+        ).map((c) => c.value);
+        if (!selecionados.length) {
+          alert("Selecione pelo menos um tipo.");
+          return;
+        }
+
+        construirSlides(selecionados);
+        fecharModal();
+        mostrarSlide(0);
+        iniciarAutoplay();
+      }
+
+      function onDadosCarregados(json, ini, fim) {
+        try {
+          dados = JSON.parse(json).filter((r) => r.data);
+        } catch (e) {
+          onErro(e);
+          return;
+        }
+        dadosCarregados = true;
+        periodoIni = ini;
+        periodoFim = fim;
+
+        // Reconstrói mapa base → gestor a partir dos registros recebidos
+        gestorPorBase = {};
+        dados.forEach((r) => {
+          if (r.base && r.gestor) gestorPorBase[r.base] = r.gestor;
+        });
+
+        iniciarAutoRefresh();
+
+        document.getElementById("headerPeriodo").textContent =
+          `${fmtData(ini)} — ${fmtData(fim)} · ${dados.length} registros`;
+
+        const tecnicas = dados.filter(ehTecnica).length;
+        const psg = dados.filter(ehPsg).length;
+        document.getElementById("resumoBox").innerHTML =
+          `Período carregado com <strong>${dados.length}</strong> registros.` +
+          `<div class="resumo-badges">` +
+          `<span class="badge">Técnicas: ${tecnicas}</span>` +
+          `<span class="badge">C/ passageiros: ${psg}</span>` +
+          `</div>`;
+
+        tiposDisponiveis = contar(dados, (r) => normTipo(r.tipo));
+
+        // 🔥 Inicializa apenas na primeira carga
+        if (tiposSelecionados.size === 0) {
+          tiposSelecionados = new Set(tiposDisponiveis.map((t) => t[0]));
+        }
+
+        // 🔥 Mantém consistência (caso surjam novos tipos)
+        tiposDisponiveis.forEach(([tipo]) => {
+          if (!tiposSelecionados.has(tipo)) {
+            tiposSelecionados.add(tipo); // opcional: pode decidir não adicionar
+          }
+        });
+
+        renderTiposNoModal();
+
+        document.getElementById("btnIniciar").textContent =
+          "Iniciar apresentação";
+        document.getElementById("btnIniciar").disabled = false;
+        document.getElementById("modalSub").textContent =
+          "Revise os tipos e clique em Iniciar apresentação.";
+      }
+
+      function onErro(e) {
+        console.error(e);
+        document.getElementById("modalSub").textContent =
+          "Erro ao carregar dados. Tente novamente.";
+        document.getElementById("btnIniciar").textContent = "Carregar dados";
+        document.getElementById("btnIniciar").disabled = false;
+      }
+
+      function renderTiposNoModal() {
+        const el = document.getElementById("tiposSection");
+
+        let html =
+          '<div class="tipos-header"><span class="tipos-label">Tipos de ocorrência</span>';
+
+        html += '<div class="tipos-actions">';
+        html +=
+          '<button class="chip" onclick="marcarTodos()">Marcar tudo</button>';
+        html +=
+          '<button class="chip" onclick="desmarcarTodos()">Desmarcar tudo</button>';
+        html += '</div></div><div class="tipos-grid">';
+
+        tiposDisponiveis.forEach(([t, q]) => {
+          html += `
+      <label class="tipo-tag">
+        <input type="checkbox" 
+               class="ap-cfg-tipo" 
+               value="${t}" 
+               ${tiposSelecionados.has(t) ? "checked" : ""} />
+        <span>${t}</span>
+        <span class="tipo-tag-count">(${q})</span>
+      </label>`;
+        });
+
+        html += "</div>";
+        el.innerHTML = html;
+
+        // 🔥 ESSENCIAL: rebind dos eventos após render
+        bindCheckboxEventos();
+      }
+      function bindCheckboxEventos() {
+        document.querySelectorAll(".ap-cfg-tipo").forEach((c) => {
+          c.addEventListener("change", (e) => {
+            const tipo = e.target.value;
+
+            if (e.target.checked) {
+              tiposSelecionados.add(tipo);
+            } else {
+              tiposSelecionados.delete(tipo);
+            }
+          });
+        });
+      }
+      function marcarTodos() {
+        document.querySelectorAll(".ap-cfg-tipo").forEach((c) => {
+          c.checked = true;
+          tiposSelecionados.add(c.value);
+        });
+      }
+
+      function desmarcarTodos() {
+        document.querySelectorAll(".ap-cfg-tipo").forEach((c) => {
+          c.checked = false;
+          tiposSelecionados.delete(c.value);
+        });
+      }
+
+      // ══════════════════════════════════════════
+      // CONSTRUÇÃO DE SLIDES
+      // ══════════════════════════════════════════
+      function construirSlides(tiposSelecionados) {
+        Object.values(chartInstances).forEach((c) => c.destroy());
+        chartInstances = {};
+
+        slides = [];
+        slides.push({ kind: "capa", dados });
+
+        const tiposPax = tiposSelecionados.filter((t) => ehTipoPax(t));
+        if (tiposPax.length) {
+          const dadosPax = dados.filter((r) =>
+            tiposPax.includes(normTipo(r.tipo)),
+          );
+          if (dadosPax.length) {
+            slides.push({
+              kind: "pax",
+              titulo: "Ocorrências com Passageiros",
+              dados: dadosPax,
+              tipos: tiposPax,
+            });
+          }
+        }
+
+        tiposSelecionados.forEach((tipo) => {
+          const doTipo = dados.filter((r) => normTipo(r.tipo) === tipo);
+          slides.push({ kind: "tipo", titulo: tipo, dados: doTipo });
+        });
+
+        const body = document.getElementById("slideBody");
+        body.innerHTML = "";
+        slides.forEach((s, i) => {
+          const el = document.createElement("div");
+          el.className = "slide";
+          el.id = `slide-${i}`;
+          body.appendChild(el);
+        });
+
+        renderDots();
+      }
+
+      function renderDots() {
+        const el = document.getElementById("slideDots");
+        el.innerHTML = "";
+        slides.forEach((_, i) => {
+          const d = document.createElement("div");
+          d.className = "dot" + (i === slideIdx ? " active" : "");
+          d.onclick = () => irParaSlide(i);
+          el.appendChild(d);
+        });
+      }
+
+      function atualizarDots() {
+        document.querySelectorAll(".dot").forEach((d, i) => {
+          d.classList.toggle("active", i === slideIdx);
+        });
+      }
+
+      // ══════════════════════════════════════════
+      // RENDERIZAÇÃO DE SLIDES
+      // ══════════════════════════════════════════
+      function mostrarSlide(idx, direcao = 1) {
+        const anterior = document.getElementById(`slide-${slideIdx}`);
+        if (anterior && anterior.classList.contains("active")) {
+          anterior.classList.remove("active");
+          if (direcao >= 0) anterior.classList.add("exit-left");
+          setTimeout(() => anterior.classList.remove("exit-left"), 450);
+        }
+
+        slideIdx = idx;
+        atualizarDots();
+
+        const el = document.getElementById(`slide-${idx}`);
+        if (!el) return;
+
+        if (!el.dataset.rendered) {
+          const s = slides[idx];
+          if (s.kind === "capa") {
+            renderCapa(el, s);
+          } else if (s.kind === "pax") {
+            renderPax(el, s);
+          } else if (s.kind === "tipo") {
+            const titulo = String(s.titulo || "").toUpperCase();
+            const sub = detectarSubtipo(s.titulo);
+            if (sub === "avaria") {
+              renderTipoAvaria(el, s);
+            } else {
+              renderTipo(el, s, sub);
+            }
+          }
+          el.dataset.rendered = "1";
+
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => criarChartsSlide(idx));
+          });
+        }
+
+        requestAnimationFrame(() => el.classList.add("active"));
+      }
+
+      function irParaSlide(idx) {
+        if (idx === slideIdx) return;
+        const dir = idx > slideIdx ? 1 : -1;
+        mostrarSlide(idx, dir);
+        resetarAutoplayBarra();
+      }
+
+      function resumoAvariasPorParte(regs) {
+        const counts = {
+          espelho: 0,
+          parabrisa: 0,
+          frontal: 0,
+          frontal_dir: 0,
+          frontal_esq: 0,
+          lateral_dir: 0,
+          lateral_esq: 0,
+          traseira: 0,
+          indefinida: 0,
+        };
+        regs.forEach((r) => {
+          const cat = classificarAvariaPorParte(r.detalhes);
+          if (!counts.hasOwnProperty(cat)) counts.indefinida++;
+          else counts[cat]++;
+        });
+        const max = Math.max(1, ...Object.values(counts));
+        return { counts, max };
+      }
+
+      // ─────────────────────────────────────────
+      // Painel de detalhes coluna C
+      // ─────────────────────────────────────────
+      function renderDetalhesPanel(registros, accentColor) {
+        const color = accentColor || "var(--accent)";
+        // Ordena por data desc, pega últimos 20
+        const rows = [...registros]
+          .sort((a, b) => b.data.localeCompare(a.data))
+          .slice(0, 20)
+          .filter((r) => r.detalhes && r.detalhes.trim());
+
+        if (!rows.length) {
+          return `<div style="color:var(--text3);font-size:12px;padding:8px 0;">Sem detalhes registrados.</div>`;
+        }
+
+        return rows
+          .map(
+            (r) => `
+          <div class="detalhe-item">
+            <span class="detalhe-prefixo" style="color:${color}">${r.prefixo || "—"}</span>
+            <span class="detalhe-texto">${r.detalhes}</span>
+            <span class="detalhe-data">${fmtData(r.data)}</span>
+          </div>`,
+          )
+          .join("");
+      }
+
+      // ── CAPA ──────────────────────────────────
+      function renderCapa(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const tecnicas = d.filter(ehTecnica).length;
+        const psg = d.filter(ehPsg).length;
+        const topTipos = contar(d, (r) => normTipo(r.tipo)).slice(0, 5);
+        const topPrefixos = contar(d, (r) => r.prefixo).slice(0, 5);
+
+        el.innerHTML = `
+        <div>
+          <div class="slide-titulo-label">Resumo operacional</div>
+          <div class="slide-titulo-h1">${fmtData(periodoIni)} — ${fmtData(periodoFim)}</div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-card c-orange">
+            <div class="kpi-label">Total de ocorrências</div>
+            <div class="kpi-value c-orange">${total}</div>
+            <div class="kpi-sub">no período selecionado</div>
+          </div>
+          <div class="kpi-card c-blue">
+            <div class="kpi-label">Ocorrências técnicas</div>
+            <div class="kpi-value c-blue">${tecnicas}</div>
+            <div class="kpi-sub">${total > 0 ? ((tecnicas / total) * 100).toFixed(1) : 0}% do total</div>
+          </div>
+          <div class="kpi-card c-pink">
+            <div class="kpi-label">Incidentes c/ passageiros</div>
+            <div class="kpi-value c-pink">${psg}</div>
+            <div class="kpi-sub">${total > 0 ? ((psg / total) * 100).toFixed(1) : 0}% do total</div>
+          </div>
+        </div>
+        <div class="slide-cols">
+          <div class="slide-panel">
+            <div class="panel-title">Distribuição por tipo</div>
+            <div class="panel-chart-wrap"><canvas id="chart-capa-tipos"></canvas></div>
+          </div>
+          <div class="slide-panel">
+            <div class="panel-title">Top veículos com ocorrências</div>
+            <div class="panel-chart-wrap"><canvas id="chart-capa-prefixos"></canvas></div>
+          </div>
+        </div>`;
+
+        el._topTipos = topTipos;
+        el._topPrefixos = topPrefixos;
+      }
+
+      // ── PAX / PSG ─────────────────────────────
+      function renderPax(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const rankMotoristas = contar(
+          d,
+          (r) => r.motorista,
+        ).slice(0, 8);
+        const maxMot = rankMotoristas[0] ? rankMotoristas[0][1] : 1;
+        const rankPlantonistas = contar(
+          d,
+          (r) => r.plantonista,
+        ).slice(0, 5);
+        const maxPlan = rankPlantonistas[0] ? rankPlantonistas[0][1] : 1;
+        const veiculosUnicos = new Set(d.map((r) => r.prefixo)).size;
+
+        const tabelaRows = [...d]
+          .sort((a, b) => b.data.localeCompare(a.data))
+          .slice(0, 12);
+
+        const motHtml = rankMotoristas.length
+          ? rankMotoristas
+              .map(
+                ([nome, q], i) => `
+            <div class="pax-rank-item">
+              <span class="pax-rank-pos">${String(i + 1).padStart(2, "0")}</span>
+              <div class="pax-rank-info">
+                <div class="pax-rank-nome">${nome}</div>
+                <div class="pax-rank-detalhe">${q} ocorrência${q > 1 ? "s" : ""} com passageiro</div>
+              </div>
+              <div class="pax-rank-bar-wrap">
+                <div class="pax-rank-bar" style="width:${((q / maxMot) * 100).toFixed(0)}%"></div>
+              </div>
+              <span class="pax-rank-count">${q}</span>
+            </div>`,
+              )
+              .join("")
+          : '<div style="color:var(--text3);font-size:13px;padding:16px 0">Sem campo motorista nos dados.</div>';
+
+        const planHtml = rankPlantonistas.length
+          ? rankPlantonistas
+              .map(
+                ([nome, q], i) => `
+            <div class="pax-rank-item" style="border-color:rgba(59,130,246,${i === 0 ? "0.4" : "0.15"});background:${i === 0 ? "rgba(59,130,246,0.06)" : ""}">
+              <span class="pax-rank-pos" style="color:${i === 0 ? "var(--blue)" : "var(--text3)"}">${String(i + 1).padStart(2, "0")}</span>
+              <div class="pax-rank-info">
+                <div class="pax-rank-nome">${nome}</div>
+                <div class="pax-rank-detalhe">${q} ocorrência${q > 1 ? "s" : ""} no plantão</div>
+              </div>
+              <div class="pax-rank-bar-wrap">
+                <div class="pax-rank-bar" style="width:${((q / maxPlan) * 100).toFixed(0)}%;background:var(--blue)"></div>
+              </div>
+              <span class="pax-rank-count" style="color:var(--blue)">${q}</span>
+            </div>`,
+              )
+              .join("")
+          : '<div style="color:var(--text3);font-size:13px;padding:16px 0">Sem campo plantonista nos dados.</div>';
+
+        const tabelaHtml = tabelaRows
+          .map(
+            (r) => `
+          <tr>
+            <td class="td-prefixo">${r.prefixo || "—"}</td>
+            <td>${normTipo(r.tipo)}</td>
+            <td style="max-width:200px">${r.detalhes || "—"}</td>
+            <td class="td-motorista">${r.motorista || "—"}</td>
+            <td class="td-plantonista">${r.plantonista || "—"}</td>
+            <td class="td-data">${fmtData(r.data)}</td>
+          </tr>`,
+          )
+          .join("");
+
+        el.innerHTML = `
+        <div>
+          <div class="slide-titulo-label">Incidentes com passageiros · PAX / PSG</div>
+          <div class="slide-titulo-h1" style="font-size:38px">${s.titulo}</div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-pink">
+            <div class="kpi-label">Ocorrências</div>
+            <div class="kpi-value c-pink">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-orange">
+            <div class="kpi-label">Motoristas envolvidos</div>
+            <div class="kpi-value c-orange">${new Set(d.map((r) => r.motorista || "")).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-blue">
+            <div class="kpi-label">Plantonistas no período</div>
+            <div class="kpi-value c-blue">${new Set(d.map((r) => r.plantonista || "")).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-yellow">
+            <div class="kpi-label">Veículos envolvidos</div>
+            <div class="kpi-value c-yellow">${veiculosUnicos}</div>
+          </div>
+        </div>
+        <div class="pax-layout">
+          <div style="display:flex;flex-direction:column;gap:16px;min-height:0;overflow:hidden;">
+            <div class="slide-panel" style="flex:1;min-height:0;">
+              <div class="panel-title" style="color:var(--pink)">Ranking de motoristas</div>
+              <div class="pax-ranking">${motHtml}</div>
+            </div>
+            <div class="slide-panel" style="flex:1;min-height:0;">
+              <div class="panel-title" style="color:var(--blue)">Plantonistas CCO</div>
+              <div class="pax-ranking">${planHtml}</div>
+            </div>
+          </div>
+          <div class="slide-panel" style="min-height:0;">
+            <div class="panel-title">Ocorrências recentes</div>
+            <div class="pax-table-wrap">
+              <table class="pax-table">
+                <thead>
+                  <tr>
+                    <th>Prefixo</th><th>Tipo</th><th>Detalhe</th>
+                    <th>Motorista</th><th>Plantonista</th><th>Data</th>
+                  </tr>
+                </thead>
+                <tbody>${tabelaHtml}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+      }
+
+      // ══════════════════════════════════════════
+      // RENDER TIPO — COM VARIANTES POR SUBTIPO
+      // ══════════════════════════════════════════
+      function renderTipo(el, s, subtipo) {
+        const d = s.dados;
+        const sub = subtipo || detectarSubtipo(s.titulo);
+
+        // ── Despacha para renderizadores especializados
+        if (sub === "mecanica") return renderMecanica(el, s);
+        if (sub === "outros") return renderOutros(el, s);
+        if (sub === "sac") return renderSac(el, s);
+        if (sub === "vazamento") return renderVazamento(el, s);
+        if (sub === "sem_motorista") return renderSemMotorista(el, s);
+        if (sub === "pane_seca") return renderPaneSeca(el, s);
+        if (sub === "surto") return renderSurto(el, s);
+
+        // genérico
+        renderTipoGenerico(el, s);
+      }
+
+      // ── GENÉRICO (base) ───────────────────────
+      function renderTipoGenerico(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const isPaxTipo = /pax|psg|passageiro/i.test(s.titulo);
+        const rankingData = isPaxTipo
+          ? contar(d, (r) => r.motorista)
+          : contar(d, (r) => r.prefixo);
+        const porBase = contar(
+          d,
+          (r) => r.base && r.base.trim(),
+        ).slice(0, 6);
+        const topRanking = rankingData.slice(0, 8);
+        const maxVal = topRanking[0] ? topRanking[0][1] : 1;
+
+        const listHtml = topRanking.length
+          ? topRanking
+              .map(
+                ([valor, q], i) => `
+            <li class="tipo-list-item">
+              <span class="tipo-list-rank">${String(i + 1).padStart(2, "0")}</span>
+              <span class="tipo-list-label">${valor}</span>
+              <div class="tipo-list-bar-wrap"><div class="tipo-list-bar" style="width:${((q / maxVal) * 100).toFixed(0)}%"></div></div>
+              <span class="tipo-list-count">${q}</span>
+            </li>`,
+              )
+              .join("")
+          : '<li style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados.</li>';
+
+        el.innerHTML = `
+        <div class="tipo-header">
+          <div>
+            <div class="slide-titulo-label">Tipo de ocorrência</div>
+            <div class="slide-titulo-h1" style="font-size:42px">${s.titulo}</div>
+          </div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-orange">
+            <div class="kpi-label">Ocorrências</div>
+            <div class="kpi-value c-orange">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-blue">
+            <div class="kpi-label">${isPaxTipo ? "Motoristas envolvidos" : "Veículos afetados"}</div>
+            <div class="kpi-value c-blue">${isPaxTipo ? new Set(d.map((r) => r.motorista || "")).size : new Set(d.map((r) => r.prefixo)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-green">
+            <div class="kpi-label">Bases envolvidas</div>
+            <div class="kpi-value c-green">${new Set(d.map((r) => r.base)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-yellow">
+            <div class="kpi-label">Média / dia</div>
+            <div class="kpi-value c-yellow">${calcMediaDia(d, periodoIni, periodoFim)}</div>
+          </div>
+        </div>
+        <div class="tipo-charts">
+          <div class="slide-panel">
+            <div class="panel-title">${isPaxTipo ? "Ranking de motoristas" : "Ranking de veículos"}</div>
+            <ul class="tipo-list">${listHtml}</ul>
+          </div>
+          <div class="slide-panel">
+            <div class="panel-title">Distribuição por base</div>
+            <div class="panel-chart-wrap"><canvas id="chart-tipo-${slideIdx}-bases"></canvas></div>
+          </div>
+        </div>`;
+
+        el._porBase = porBase;
+      }
+
+      // ── MECÂNICA ── ranking + painel detalhes coluna C
+      function renderMecanica(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const porVeiculo = contar(d, (r) => r.prefixo).slice(
+          0,
+          8,
+        );
+        const porBase = contar(
+          d,
+          (r) => r.base && r.base.trim(),
+        ).slice(0, 6);
+        const maxVal = porVeiculo[0] ? porVeiculo[0][1] : 1;
+
+        const listHtml = porVeiculo.length
+          ? porVeiculo
+              .map(
+                ([valor, q], i) => `
+            <li class="tipo-list-item">
+              <span class="tipo-list-rank">${String(i + 1).padStart(2, "0")}</span>
+              <span class="tipo-list-label">${valor}</span>
+              <div class="tipo-list-bar-wrap"><div class="tipo-list-bar" style="width:${((q / maxVal) * 100).toFixed(0)}%"></div></div>
+              <span class="tipo-list-count">${q}</span>
+            </li>`,
+              )
+              .join("")
+          : '<li style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados.</li>';
+
+        el.innerHTML = `
+        <div class="tipo-header">
+          <div>
+            <div class="slide-titulo-label">Tipo de ocorrência</div>
+            <div class="slide-titulo-h1" style="font-size:42px">${s.titulo}</div>
+          </div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-orange">
+            <div class="kpi-label">Ocorrências</div>
+            <div class="kpi-value c-orange">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-blue">
+            <div class="kpi-label">Veículos afetados</div>
+            <div class="kpi-value c-blue">${new Set(d.map((r) => r.prefixo)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-green">
+            <div class="kpi-label">Bases envolvidas</div>
+            <div class="kpi-value c-green">${new Set(d.map((r) => r.base)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-yellow">
+            <div class="kpi-label">Média / dia</div>
+            <div class="kpi-value c-yellow">${calcMediaDia(d, periodoIni, periodoFim)}</div>
+          </div>
+        </div>
+        <div class="tipo-charts">
+          <div class="slide-panel" style="display:flex;flex-direction:column;gap:12px;min-height:0;">
+            <div style="flex-shrink:0;">
+              <div class="panel-title">Ranking de veículos</div>
+              <ul class="tipo-list">${listHtml}</ul>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;">
+            <div class="slide-panel" style="flex:1;min-height:0;">
+              <div class="panel-title">Detalhes das ocorrências</div>
+              <div class="detalhes-feed">${renderDetalhesPanel(d, "var(--accent)")}</div>
+            </div>
+            <div class="slide-panel" style="flex:0.8;min-height:0;">
+              <div class="panel-title">Distribuição por base</div>
+              <div class="panel-chart-wrap"><canvas id="chart-tipo-${slideIdx}-bases"></canvas></div>
+            </div>
+          </div>
+        </div>`;
+
+        el._porBase = porBase;
+        // hack: criarChartsSlide detecta pelo canvas id
+        el.dataset.subtipo = "mecanica";
+      }
+
+      // ── OUTROS ── layout igual ao mecânica
+      function renderOutros(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const porVeiculo = contar(d, (r) => r.prefixo).slice(
+          0,
+          8,
+        );
+        const porBase = contar(
+          d,
+          (r) => r.base && r.base.trim(),
+        ).slice(0, 6);
+        const maxVal = porVeiculo[0] ? porVeiculo[0][1] : 1;
+
+        const listHtml = porVeiculo.length
+          ? porVeiculo
+              .map(
+                ([valor, q], i) => `
+            <li class="tipo-list-item">
+              <span class="tipo-list-rank">${String(i + 1).padStart(2, "0")}</span>
+              <span class="tipo-list-label">${valor}</span>
+              <div class="tipo-list-bar-wrap"><div class="tipo-list-bar" style="width:${((q / maxVal) * 100).toFixed(0)}%;background:var(--yellow)"></div></div>
+              <span class="tipo-list-count">${q}</span>
+            </li>`,
+              )
+              .join("")
+          : '<li style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados.</li>';
+
+        el.innerHTML = `
+        <div class="tipo-header">
+          <div>
+            <div class="slide-titulo-label">Tipo de ocorrência</div>
+            <div class="slide-titulo-h1" style="font-size:42px">${s.titulo}</div>
+          </div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-yellow">
+            <div class="kpi-label">Ocorrências</div>
+            <div class="kpi-value c-yellow">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-blue">
+            <div class="kpi-label">Veículos afetados</div>
+            <div class="kpi-value c-blue">${new Set(d.map((r) => r.prefixo)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-green">
+            <div class="kpi-label">Bases envolvidas</div>
+            <div class="kpi-value c-green">${new Set(d.map((r) => r.base)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-orange">
+            <div class="kpi-label">Média / dia</div>
+            <div class="kpi-value c-orange">${calcMediaDia(d, periodoIni, periodoFim)}</div>
+          </div>
+        </div>
+        <div class="tipo-charts">
+          <div class="slide-panel" style="display:flex;flex-direction:column;gap:12px;min-height:0;">
+            <div style="flex-shrink:0;">
+              <div class="panel-title">Ranking de veículos</div>
+              <ul class="tipo-list">${listHtml}</ul>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;">
+            <div class="slide-panel" style="flex:1;min-height:0;">
+              <div class="panel-title">Detalhes das ocorrências</div>
+              <div class="detalhes-feed">${renderDetalhesPanel(d, "var(--yellow)")}</div>
+            </div>
+            <div class="slide-panel" style="flex:0.8;min-height:0;">
+              <div class="panel-title">Distribuição por base</div>
+              <div class="panel-chart-wrap"><canvas id="chart-tipo-${slideIdx}-bases"></canvas></div>
+            </div>
+          </div>
+        </div>`;
+
+        el._porBase = porBase;
+      }
+
+      // ── SAC ── ranking + detalhes da coluna C na mesma tela
+      function renderSac(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const porVeiculo = contar(d, (r) => r.prefixo).slice(
+          0,
+          6,
+        );
+        const porBase = contar(
+          d,
+          (r) => r.base && r.base.trim(),
+        ).slice(0, 6);
+        const maxVal = porVeiculo[0] ? porVeiculo[0][1] : 1;
+
+        const listHtml =
+          porVeiculo
+            .map(
+              ([valor, q], i) => `
+          <li class="tipo-list-item">
+            <span class="tipo-list-rank">${String(i + 1).padStart(2, "0")}</span>
+            <span class="tipo-list-label">${valor}</span>
+            <div class="tipo-list-bar-wrap"><div class="tipo-list-bar" style="width:${((q / maxVal) * 100).toFixed(0)}%;background:var(--pink)"></div></div>
+            <span class="tipo-list-count">${q}</span>
+          </li>`,
+            )
+            .join("") ||
+          '<li style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados.</li>';
+
+        el.innerHTML = `
+        <div class="tipo-header">
+          <div>
+            <div class="slide-titulo-label">Tipo de ocorrência</div>
+            <div class="slide-titulo-h1" style="font-size:42px">${s.titulo}</div>
+          </div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-pink">
+            <div class="kpi-label">Ocorrências</div>
+            <div class="kpi-value c-pink">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-blue">
+            <div class="kpi-label">Veículos envolvidos</div>
+            <div class="kpi-value c-blue">${new Set(d.map((r) => r.prefixo)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-green">
+            <div class="kpi-label">Bases envolvidas</div>
+            <div class="kpi-value c-green">${new Set(d.map((r) => r.base)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-yellow">
+            <div class="kpi-label">Média / dia</div>
+            <div class="kpi-value c-yellow">${calcMediaDia(d, periodoIni, periodoFim)}</div>
+          </div>
+        </div>
+        <div class="tipo-charts">
+          <div class="slide-panel" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="panel-title">Ranking de veículos</div>
+            <ul class="tipo-list">${listHtml}</ul>
+            <div class="panel-title" style="margin-top:8px;">Distribuição por base</div>
+            <div class="panel-chart-wrap" style="min-height:100px;flex:1;">
+              <canvas id="chart-tipo-${slideIdx}-bases"></canvas>
+            </div>
+          </div>
+          <div class="slide-panel" style="flex:1;min-height:0;">
+            <div class="panel-title" style="color:var(--pink)">Detalhes / Relatos</div>
+            <div class="detalhes-feed">${renderDetalhesPanel(d, "var(--pink)")}</div>
+          </div>
+        </div>`;
+
+        el._porBase = porBase;
+      }
+
+      // ── VAZAMENTO ── igual ao SAC
+      function renderVazamento(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const porVeiculo = contar(d, (r) => r.prefixo).slice(
+          0,
+          6,
+        );
+        const porBase = contar(
+          d,
+          (r) => r.base && r.base.trim(),
+        ).slice(0, 6);
+        const maxVal = porVeiculo[0] ? porVeiculo[0][1] : 1;
+
+        const listHtml =
+          porVeiculo
+            .map(
+              ([valor, q], i) => `
+          <li class="tipo-list-item">
+            <span class="tipo-list-rank">${String(i + 1).padStart(2, "0")}</span>
+            <span class="tipo-list-label">${valor}</span>
+            <div class="tipo-list-bar-wrap"><div class="tipo-list-bar" style="width:${((q / maxVal) * 100).toFixed(0)}%;background:var(--blue)"></div></div>
+            <span class="tipo-list-count">${q}</span>
+          </li>`,
+            )
+            .join("") ||
+          '<li style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados.</li>';
+
+        el.innerHTML = `
+        <div class="tipo-header">
+          <div>
+            <div class="slide-titulo-label">Tipo de ocorrência</div>
+            <div class="slide-titulo-h1" style="font-size:42px">${s.titulo}</div>
+          </div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-blue">
+            <div class="kpi-label">Ocorrências</div>
+            <div class="kpi-value c-blue">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-orange">
+            <div class="kpi-label">Veículos afetados</div>
+            <div class="kpi-value c-orange">${new Set(d.map((r) => r.prefixo)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-green">
+            <div class="kpi-label">Bases envolvidas</div>
+            <div class="kpi-value c-green">${new Set(d.map((r) => r.base)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-yellow">
+            <div class="kpi-label">Média / dia</div>
+            <div class="kpi-value c-yellow">${calcMediaDia(d, periodoIni, periodoFim)}</div>
+          </div>
+        </div>
+        <div class="tipo-charts">
+          <div class="slide-panel" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="panel-title">Ranking de veículos</div>
+            <ul class="tipo-list">${listHtml}</ul>
+            <div class="panel-title" style="margin-top:8px;">Distribuição por base</div>
+            <div class="panel-chart-wrap" style="min-height:100px;flex:1;">
+              <canvas id="chart-tipo-${slideIdx}-bases"></canvas>
+            </div>
+          </div>
+          <div class="slide-panel" style="flex:1;min-height:0;">
+            <div class="panel-title" style="color:var(--blue)">Detalhes</div>
+            <div class="detalhes-feed">${renderDetalhesPanel(d, "var(--blue)")}</div>
+          </div>
+        </div>`;
+
+        el._porBase = porBase;
+      }
+
+      // ── SEM MOTORISTA ── motorista (sem veículo) + base
+      function renderSemMotorista(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const porMotorista = contar(
+          d,
+          (r) => r.motorista,
+        ).slice(0, 8);
+        const porBase = contar(
+          d,
+          (r) => r.base && r.base.trim(),
+        ).slice(0, 6);
+        const maxVal = porMotorista[0] ? porMotorista[0][1] : 1;
+
+        const listHtml = porMotorista.length
+          ? porMotorista
+              .map(
+                ([nome, q], i) => `
+            <li class="tipo-list-item">
+              <span class="tipo-list-rank">${String(i + 1).padStart(2, "0")}</span>
+              <span class="tipo-list-label" style="color:var(--pink)">${nome}</span>
+              <div class="tipo-list-bar-wrap"><div class="tipo-list-bar" style="width:${((q / maxVal) * 100).toFixed(0)}%;background:var(--pink)"></div></div>
+              <span class="tipo-list-count">${q}</span>
+            </li>`,
+              )
+              .join("")
+          : '<li style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados de motorista.</li>';
+
+        el.innerHTML = `
+        <div class="tipo-header">
+          <div>
+            <div class="slide-titulo-label">Tipo de ocorrência</div>
+            <div class="slide-titulo-h1" style="font-size:42px">${s.titulo}</div>
+          </div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-red">
+            <div class="kpi-label">Ocorrências</div>
+            <div class="kpi-value c-red">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-pink">
+            <div class="kpi-label">Motoristas únicos</div>
+            <div class="kpi-value c-pink">${new Set(d.map((r) => r.motorista || "")).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-green">
+            <div class="kpi-label">Bases envolvidas</div>
+            <div class="kpi-value c-green">${new Set(d.map((r) => r.base)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-yellow">
+            <div class="kpi-label">Média / dia</div>
+            <div class="kpi-value c-yellow">${calcMediaDia(d, periodoIni, periodoFim)}</div>
+          </div>
+        </div>
+        <div class="tipo-charts">
+          <div class="slide-panel">
+            <div class="panel-title" style="color:var(--pink)">Ranking de motoristas</div>
+            <ul class="tipo-list">${listHtml}</ul>
+          </div>
+          <div class="slide-panel">
+            <div class="panel-title">Distribuição por base</div>
+            <div class="panel-chart-wrap"><canvas id="chart-tipo-${slideIdx}-bases"></canvas></div>
+          </div>
+        </div>`;
+
+        el._porBase = porBase;
+      }
+
+      // ── PANE SECA ── veículo + motorista + base
+      function renderPaneSeca(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const porVeiculo = contar(d, (r) => r.prefixo).slice(
+          0,
+          5,
+        );
+        const porMotorista = contar(
+          d,
+          (r) => r.motorista,
+        ).slice(0, 5);
+        const porBase = contar(
+          d,
+          (r) => r.base && r.base.trim(),
+        ).slice(0, 6);
+        const maxVeic = porVeiculo[0] ? porVeiculo[0][1] : 1;
+        const maxMot = porMotorista[0] ? porMotorista[0][1] : 1;
+
+        const veicHtml = porVeiculo.length
+          ? porVeiculo
+              .map(
+                ([valor, q], i) => `
+            <li class="tipo-list-item">
+              <span class="tipo-list-rank">${String(i + 1).padStart(2, "0")}</span>
+              <span class="tipo-list-label">${valor}</span>
+              <div class="tipo-list-bar-wrap"><div class="tipo-list-bar" style="width:${((q / maxVeic) * 100).toFixed(0)}%"></div></div>
+              <span class="tipo-list-count">${q}</span>
+            </li>`,
+              )
+              .join("")
+          : '<li style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados.</li>';
+
+        const motHtml = porMotorista.length
+          ? porMotorista
+              .map(
+                ([nome, q], i) => `
+            <div class="pax-rank-item" style="border-color:rgba(249,115,22,${i === 0 ? "0.4" : "0.15"});background:${i === 0 ? "rgba(249,115,22,0.06)" : ""}">
+              <span class="pax-rank-pos" style="color:${i === 0 ? "var(--accent)" : "var(--text3)"}">${String(i + 1).padStart(2, "0")}</span>
+              <div class="pax-rank-info">
+                <div class="pax-rank-nome">${nome}</div>
+                <div class="pax-rank-detalhe">${q} pane${q > 1 ? "s" : ""} seca${q > 1 ? "s" : ""}</div>
+              </div>
+              <div class="pax-rank-bar-wrap">
+                <div class="pax-rank-bar" style="width:${((q / maxMot) * 100).toFixed(0)}%;background:var(--accent)"></div>
+              </div>
+              <span class="pax-rank-count" style="color:var(--accent)">${q}</span>
+            </div>`,
+              )
+              .join("")
+          : '<div style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados de motorista.</div>';
+
+        el.innerHTML = `
+        <div class="tipo-header">
+          <div>
+            <div class="slide-titulo-label">Tipo de ocorrência</div>
+            <div class="slide-titulo-h1" style="font-size:42px">${s.titulo}</div>
+          </div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-orange">
+            <div class="kpi-label">Ocorrências</div>
+            <div class="kpi-value c-orange">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-blue">
+            <div class="kpi-label">Veículos afetados</div>
+            <div class="kpi-value c-blue">${new Set(d.map((r) => r.prefixo)).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-pink">
+            <div class="kpi-label">Motoristas envolvidos</div>
+            <div class="kpi-value c-pink">${new Set(d.map((r) => r.motorista || "")).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-green">
+            <div class="kpi-label">Bases envolvidas</div>
+            <div class="kpi-value c-green">${new Set(d.map((r) => r.base)).size}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:16px;flex:1;min-height:0;">
+          <div style="display:flex;flex-direction:column;gap:12px;min-height:0;">
+            <div class="slide-panel" style="flex:1;min-height:0;">
+              <div class="panel-title">Veículos com mais panes secas</div>
+              <ul class="tipo-list">${veicHtml}</ul>
+            </div>
+            <div class="slide-panel" style="flex:1;min-height:0;">
+              <div class="panel-title" style="color:var(--accent)">Motoristas com mais panes</div>
+              <div class="pax-ranking" style="flex:1;min-height:0;">${motHtml}</div>
+            </div>
+          </div>
+          <div class="slide-panel" style="min-height:0;">
+            <div class="panel-title">Distribuição por base</div>
+            <div class="panel-chart-wrap"><canvas id="chart-tipo-${slideIdx}-bases"></canvas></div>
+          </div>
+        </div>`;
+
+        el._porBase = porBase;
+      }
+
+      // ── SURTO (PSG em surto) ── motoristas + plantonistas + detalhes
+      function renderSurto(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const rankMotoristas = contar(
+          d,
+          (r) => r.motorista,
+        ).slice(0, 5);
+        const rankPlantonistas = contar(
+          d,
+          (r) => r.plantonista,
+        ).slice(0, 5);
+        const maxMot = rankMotoristas[0] ? rankMotoristas[0][1] : 1;
+        const maxPlan = rankPlantonistas[0] ? rankPlantonistas[0][1] : 1;
+
+        const motHtml = rankMotoristas.length
+          ? rankMotoristas
+              .map(
+                ([nome, q], i) => `
+            <div class="pax-rank-item">
+              <span class="pax-rank-pos">${String(i + 1).padStart(2, "0")}</span>
+              <div class="pax-rank-info">
+                <div class="pax-rank-nome">${nome}</div>
+                <div class="pax-rank-detalhe">${q} ocorrência${q > 1 ? "s" : ""}</div>
+              </div>
+              <div class="pax-rank-bar-wrap"><div class="pax-rank-bar" style="width:${((q / maxMot) * 100).toFixed(0)}%"></div></div>
+              <span class="pax-rank-count">${q}</span>
+            </div>`,
+              )
+              .join("")
+          : '<div style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados de motorista.</div>';
+
+        const planHtml = rankPlantonistas.length
+          ? rankPlantonistas
+              .map(
+                ([nome, q], i) => `
+            <div class="pax-rank-item" style="border-color:rgba(59,130,246,${i === 0 ? "0.4" : "0.15"});background:${i === 0 ? "rgba(59,130,246,0.06)" : ""}">
+              <span class="pax-rank-pos" style="color:${i === 0 ? "var(--blue)" : "var(--text3)"}">${String(i + 1).padStart(2, "0")}</span>
+              <div class="pax-rank-info">
+                <div class="pax-rank-nome">${nome}</div>
+                <div class="pax-rank-detalhe">${q} surto${q > 1 ? "s" : ""} atendido${q > 1 ? "s" : ""}</div>
+              </div>
+              <div class="pax-rank-bar-wrap"><div class="pax-rank-bar" style="width:${((q / maxPlan) * 100).toFixed(0)}%;background:var(--blue)"></div></div>
+              <span class="pax-rank-count" style="color:var(--blue)">${q}</span>
+            </div>`,
+              )
+              .join("")
+          : '<div style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados de plantonista.</div>';
+
+        el.innerHTML = `
+        <div class="tipo-header">
+          <div>
+            <div class="slide-titulo-label">Tipo de ocorrência · Passageiro</div>
+            <div class="slide-titulo-h1" style="font-size:42px">${s.titulo}</div>
+          </div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-pink">
+            <div class="kpi-label">Ocorrências</div>
+            <div class="kpi-value c-pink">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-orange">
+            <div class="kpi-label">Motoristas envolvidos</div>
+            <div class="kpi-value c-orange">${new Set(d.map((r) => r.motorista || "")).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-blue">
+            <div class="kpi-label">Plantonistas no período</div>
+            <div class="kpi-value c-blue">${new Set(d.map((r) => r.plantonista || "")).size}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-yellow">
+            <div class="kpi-label">Veículos envolvidos</div>
+            <div class="kpi-value c-yellow">${new Set(d.map((r) => r.prefixo)).size}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;flex:1;min-height:0;">
+          <div class="slide-panel" style="min-height:0;">
+            <div class="panel-title" style="color:var(--pink)">Ranking de motoristas</div>
+            <div class="pax-ranking">${motHtml}</div>
+          </div>
+          <div class="slide-panel" style="min-height:0;">
+            <div class="panel-title" style="color:var(--blue)">Plantonistas CCO</div>
+            <div class="pax-ranking">${planHtml}</div>
+          </div>
+          <div class="slide-panel" style="min-height:0;">
+            <div class="panel-title">Detalhes das ocorrências</div>
+            <div class="detalhes-feed">${renderDetalhesPanel(d, "var(--pink)")}</div>
+          </div>
+        </div>`;
+      }
+
+      // ── AVARIA ──────────────────────────────────
+      function renderTipoAvaria(el, s) {
+        const d = s.dados;
+        const total = d.length;
+        const porVeiculo = contar(d, (r) => r.prefixo).slice(
+          0,
+          3,
+        );
+        const porMotorista = contar(
+          d,
+          (r) => r.motorista,
+        ).slice(0, 3);
+        const porBase = contar(
+          d,
+          (r) => r.base && r.base.trim(),
+        ).slice(0, 5);
+        const veicUnicos = new Set(d.map((r) => r.prefixo || "")).size;
+        const motUnicos = new Set(d.map((r) => r.motorista || "")).size;
+        const baseUnicas = new Set(d.map((r) => r.base || "")).size;
+        const { counts: avarias, max: maxAvaria } = resumoAvariasPorParte(d);
+
+        const veicHtml = porVeiculo.length
+          ? porVeiculo
+              .map(
+                ([p, q], i) => `
+            <li class="tipo-list-item">
+              <span class="tipo-list-rank">${String(i + 1).padStart(2, "0")}</span>
+              <span class="tipo-list-label">${p}</span>
+              <div class="tipo-list-bar-wrap"><div class="tipo-list-bar" style="width:${((q / porVeiculo[0][1]) * 100).toFixed(0)}%"></div></div>
+              <span class="tipo-list-count">${q}</span>
+            </li>`,
+              )
+              .join("")
+          : '<li style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados de veículo.</li>';
+
+        const motHtml = porMotorista.length
+          ? porMotorista
+              .map(
+                ([nome, q], i) => `
+            <div class="pax-rank-item">
+              <span class="pax-rank-pos">${String(i + 1).padStart(2, "0")}</span>
+              <div class="pax-rank-info">
+                <div class="pax-rank-nome">${nome}</div>
+                <div class="pax-rank-detalhe">${q} avaria${q > 1 ? "s" : ""}</div>
+              </div>
+              <div class="pax-rank-bar-wrap"><div class="pax-rank-bar" style="width:${((q / porMotorista[0][1]) * 100).toFixed(0)}%"></div></div>
+              <span class="pax-rank-count">${q}</span>
+            </div>`,
+              )
+              .join("")
+          : '<div style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados de motorista.</div>';
+
+        el._porBase = porBase;
+
+        const partes = {
+          frontal: avarias.frontal + avarias.frontal_dir + avarias.frontal_esq,
+          parabrisa: avarias.parabrisa,
+          lateral_esq: avarias.lateral_esq,
+          lateral_dir: avarias.lateral_dir,
+          traseira: avarias.traseira,
+          espelho: avarias.espelho,
+        };
+
+        const LABELS = {
+          frontal: "FRONTAL",
+          parabrisa: "PARA-BRISA",
+          lateral_esq: "LAT. ESQ",
+          lateral_dir: "LAT. DIR",
+          traseira: "TRASEIRA",
+          espelho: "ESPELHOS",
+        };
+        el.innerHTML = `
+        <div class="tipo-header">
+          <div>
+            <div class="slide-titulo-label">Tipo de ocorrência · Manutenção / Carroceria</div>
+            <div class="slide-titulo-h1" style="font-size:42px">${s.titulo}</div>
+          </div>
+        </div>
+        <div class="tipo-kpi-row">
+          <div class="tipo-kpi kpi-card c-orange">
+            <div class="kpi-label">Ocorrências de avaria</div>
+            <div class="kpi-value c-orange">${total}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-blue">
+            <div class="kpi-label">Veículos afetados</div>
+            <div class="kpi-value c-blue">${veicUnicos}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-pink">
+            <div class="kpi-label">Motoristas envolvidos</div>
+            <div class="kpi-value c-pink">${motUnicos}</div>
+          </div>
+          <div class="tipo-kpi kpi-card c-green">
+            <div class="kpi-label">Bases envolvidas</div>
+            <div class="kpi-value c-green">${baseUnicas}</div>
+          </div>
+        </div>
+        <div class="tipo-charts">
+          <div class="slide-panel" style="display:flex;flex-direction:column;gap:16px;min-height:0;">
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+              <div class="panel-title">Veículos com mais avarias</div>
+              <ul class="tipo-list">${veicHtml}</ul>
+            </div>
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+              <div class="panel-title" style="color:var(--pink)">Motoristas com mais avarias</div>
+              <div class="pax-ranking" style="flex:1;min-height:0;">${motHtml}</div>
+            </div>
+          </div>
+          <div class="slide-panel" style="display:flex;flex-direction:column;gap:16px;min-height:0;">
+            <div style="flex:1.2;min-height:0;display:flex;flex-direction:column;">
+          <div class="panel-title">Partes mais afetadas</div>
+          <ul class="tipo-list">
+            ${
+              Object.entries(partes)
+                .sort((a, b) => b[1] - a[1])
+                .filter(([, q]) => q > 0)
+                .map(
+                  ([parte, q], i) => `
+                <li class="tipo-list-item">
+                  <span class="tipo-list-rank">${String(i + 1).padStart(2, "0")}</span>
+                  <span class="tipo-list-label">${LABELS[parte] || parte}</span>
+                  <div class="tipo-list-bar-wrap">
+                    <div class="tipo-list-bar" style="width:${((q / maxAvaria) * 100).toFixed(0)}%"></div>
+                  </div>
+                  <span class="tipo-list-count">${q}</span>
+                </li>`,
+                )
+                .join("") ||
+              '<li style="color:var(--text3);font-size:13px;padding:12px 0">Sem dados de localização.</li>'
+            }
+          </ul>
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+              <div class="panel-title">Distribuição por base</div>
+              <div class="panel-chart-wrap"><canvas id="chart-tipo-${slideIdx}-bases"></canvas></div>
+            </div>
+          </div>
+        </div>`;
+
+        colorirOnibusAvaria(avarias, maxAvaria);
+      }
+
+      // ─────────────────────────────────────────
+      // Colorir + labels nas partes do ônibus
+      // ─────────────────────────────────────────
+      function colorirOnibusAvaria(counts, max) {
+        // Labels amigáveis para cada parte
+        const LABELS = {
+          frontal: "FRONTAL",
+          parabrisa: "PARA-BRISA",
+          lateral_esq: "LAT. ESQ",
+          lateral_dir: "LAT. DIR",
+          traseira: "TRASEIRA",
+          espelho: "ESPELHOS",
+        };
+
+        // Posições (top/left/transform) de cada label dentro do .avaria-bus
+        // Usamos percentuais para respeitar o aspect-ratio do container
+        const LABEL_POS = {
+          frontal: { left: "7%", top: "50%", transform: "translateY(-50%)" },
+          parabrisa: { left: "5%", top: "22%", transform: "none" },
+          lateral_esq: { left: "34%", top: "10%", transform: "none" },
+          lateral_dir: { left: "34%", top: "68%", transform: "none" },
+          traseira: { left: "88%", top: "50%", transform: "translateY(-50%)" },
+          espelho: { left: "8%", top: "4%", transform: "none" },
+        };
+
+        const partes = {
+          frontal: counts.frontal + counts.frontal_dir + counts.frontal_esq,
+          parabrisa: counts.parabrisa,
+          lateral_esq: counts.lateral_esq,
+          lateral_dir: counts.lateral_dir,
+          traseira: counts.traseira,
+          espelho: counts.espelho,
+        };
+
+        // Remove labels anteriores
+        const bus = document.getElementById("avariaBus");
+        if (!bus) return;
+        bus.querySelectorAll(".avaria-bus-label").forEach((l) => l.remove());
+
+        Object.entries(partes).forEach(([part, q]) => {
+          const els = bus.querySelectorAll(`[data-part="${part}"]`);
+          const t = max > 0 ? q / max : 0;
+          const baseColor = `rgba(249,115,22,${0.15 + 0.6 * t})`;
+
+          els.forEach((partEl) => {
+            if (t <= 0) {
+              partEl.style.background = "rgba(148,163,184,0.15)";
+              partEl.classList.remove("avaria-bus-hot");
+            } else {
+              partEl.style.background = baseColor;
+              partEl.classList.add("avaria-bus-hot");
+            }
+          });
+
+          // Adiciona label apenas uma vez por parte (não duplica espelhos)
+          const alreadyLabeled = bus.querySelector(
+            `.avaria-bus-label[data-label-part="${part}"]`,
+          );
+          if (!alreadyLabeled && LABEL_POS[part]) {
+            const lbl = document.createElement("div");
+            lbl.className = "avaria-bus-label" + (t > 0 ? " label-hot" : "");
+            lbl.dataset.labelPart = part;
+            lbl.style.left = LABEL_POS[part].left;
+            lbl.style.top = LABEL_POS[part].top;
+            lbl.style.transform = LABEL_POS[part].transform;
+            lbl.innerHTML = `${LABELS[part] || part}${q > 0 ? `<span class="label-count">${q}</span>` : ""}`;
+            bus.appendChild(lbl);
+          }
+        });
+      }
+
+      function calcMediaDia(d, ini, fim) {
+        if (!ini || !fim || !d.length) return "—";
+        const diff = Math.max(
+          1,
+          Math.round(
+            (new Date(fim + "T12:00:00") - new Date(ini + "T12:00:00")) /
+              86400000,
+          ) + 1,
+        );
+        return (d.length / diff).toFixed(1);
+      }
+
+      // ══════════════════════════════════════════
+      // CHARTS (Chart.js)
+      // ══════════════════════════════════════════
+      const CORES = [
+        "#f97316",
+        "#3b82f6",
+        "#ec4899",
+        "#22c55e",
+        "#eab308",
+        "#a78bfa",
+        "#38bdf8",
+        "#fb7185",
+      ];
+      const CORES_ALPHA = CORES.map((c) => c + "cc");
+
+      const chartDefaults = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: "#9aa0b0",
+              font: { family: "DM Sans", size: 12 },
+              boxWidth: 12,
+              padding: 12,
+            },
+          },
+          tooltip: {
+            backgroundColor: "#12151b",
+            borderColor: "rgba(255,255,255,0.12)",
+            borderWidth: 1,
+            titleColor: "#f1f3f6",
+            bodyColor: "#9aa0b0",
+            padding: 10,
+            cornerRadius: 8,
+          },
+        },
+      };
+
+      function criarChartsSlide(idx) {
+        const s = slides[idx];
+        const el = document.getElementById(`slide-${idx}`);
+        if (!el) return;
+
+        if (s.kind === "capa") {
+          const canvasTipos = document.getElementById("chart-capa-tipos");
+          if (canvasTipos && !chartInstances["capa-tipos"]) {
+            const topTipos = el._topTipos || [];
+            chartInstances["capa-tipos"] = new Chart(canvasTipos, {
+              type: "bar",
+              data: {
+                labels: topTipos.map(([t]) =>
+                  t.length > 22 ? t.slice(0, 22) + "…" : t,
+                ),
+                datasets: [
+                  {
+                    data: topTipos.map(([, q]) => q),
+                    backgroundColor: CORES_ALPHA.slice(0, topTipos.length),
+                    borderColor: CORES.slice(0, topTipos.length),
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                  },
+                ],
+              },
+              options: {
+                ...chartDefaults,
+                indexAxis: "y",
+                plugins: {
+                  ...chartDefaults.plugins,
+                  legend: { display: false },
+                },
+                scales: {
+                  x: {
+                    grid: { color: "rgba(255,255,255,0.05)" },
+                    ticks: {
+                      color: "#9aa0b0",
+                      font: { family: "DM Sans", size: 12 },
+                    },
+                  },
+                  y: {
+                    grid: { display: false },
+                    ticks: {
+                      color: "#f1f3f6",
+                      font: { family: "DM Sans", size: 13 },
+                    },
+                  },
+                },
+              },
+            });
+          }
+
+          const canvasPfx = document.getElementById("chart-capa-prefixos");
+          if (canvasPfx && !chartInstances["capa-prefixos"]) {
+            const topPfx = el._topPrefixos || [];
+            chartInstances["capa-prefixos"] = new Chart(canvasPfx, {
+              type: "doughnut",
+              data: {
+                labels: topPfx.map(([p]) => p),
+                datasets: [
+                  {
+                    data: topPfx.map(([, q]) => q),
+                    backgroundColor: CORES_ALPHA.slice(0, topPfx.length),
+                    borderColor: "#07080a",
+                    borderWidth: 2,
+                    hoverOffset: 8,
+                  },
+                ],
+              },
+              options: {
+                ...chartDefaults,
+                cutout: "60%",
+                plugins: {
+                  ...chartDefaults.plugins,
+                  legend: {
+                    position: "right",
+                    labels: {
+                      color: "#9aa0b0",
+                      font: { family: "DM Sans", size: 12 },
+                      padding: 14,
+                      boxWidth: 12,
+                    },
+                  },
+                },
+              },
+            });
+          }
+        }
+
+        if (s.kind === "tipo") {
+          const chartKey = `tipo-${idx}-bases`;
+          const canvas = document.getElementById(`chart-tipo-${idx}-bases`);
+          if (canvas && !chartInstances[chartKey]) {
+            const porBase = el._porBase || [];
+            chartInstances[chartKey] = new Chart(canvas, {
+              type: "bar",
+              data: {
+                labels: porBase.map(([b]) => {
+                  const g = gestorPorBase[b];
+                  const label = g ? `${b} (${g})` : b;
+                  return label.length > 26 ? label.slice(0, 26) + "…" : label;
+                }),
+                datasets: [
+                  {
+                    data: porBase.map(([, q]) => q),
+                    backgroundColor: CORES_ALPHA.slice(0, porBase.length),
+                    borderColor: CORES.slice(0, porBase.length),
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                  },
+                ],
+              },
+              options: {
+                ...chartDefaults,
+                plugins: {
+                  ...chartDefaults.plugins,
+                  legend: { display: false },
+                },
+                scales: {
+                  x: {
+                    grid: { display: false },
+                    ticks: {
+                      color: (ctx) => CORES[ctx.index % CORES.length],
+                      font: { family: "DM Sans", size: 12 },
+                    },
+                  },
+                  y: {
+                    grid: { color: "rgba(255,255,255,0.05)" },
+                    ticks: {
+                      color: "#9aa0b0",
+                      font: { family: "DM Sans", size: 12 },
+                    },
+                  },
+                },
+              },
+            });
+          }
+        }
+      }
+
+      // ══════════════════════════════════════════
+      // AUTOPLAY
+      // ══════════════════════════════════════════
+      function toggleAutoplay() {
+        if (autoplay) pausarAutoplay();
+        else iniciarAutoplay();
+      }
+
+      function iniciarAutoplay() {
+        if (!slides.length) return;
+        autoplay = true;
+        document.getElementById("btnAutoplay").classList.add("active");
+        document.getElementById("btnAutoplay").textContent = "⏸ Auto";
+        agendarProximo();
+        animarBarra();
+      }
+
+      function pausarAutoplay() {
+        autoplay = false;
+        clearTimeout(autoplayTimer);
+        cancelAnimationFrame(autoplayRAF);
+        document.getElementById("btnAutoplay").classList.remove("active");
+        document.getElementById("btnAutoplay").textContent = "⏵ Auto";
+        const fill = document.getElementById("autoplayFill");
+        fill.style.transition = "none";
+        fill.style.width = "0%";
+      }
+
+      function agendarProximo() {
+        clearTimeout(autoplayTimer);
+        autoplayStart = Date.now();
+        autoplayTimer = setTimeout(() => {
+          if (!autoplay) return;
+          const next = (slideIdx + 1) % slides.length;
+          mostrarSlide(next, 1);
+          agendarProximo();
+          animarBarra();
+        }, autoplayInterval);
+      }
+
+      function animarBarra() {
+        cancelAnimationFrame(autoplayRAF);
+        const fill = document.getElementById("autoplayFill");
+        fill.classList.remove("animating");
+        fill.style.width = "0%";
+        requestAnimationFrame(() => {
+          fill.classList.add("animating");
+          fill.style.transition = `width ${autoplayInterval}ms linear`;
+          fill.style.width = "100%";
+        });
+      }
+
+      function resetarAutoplayBarra() {
+        if (!autoplay) return;
+        agendarProximo();
+        animarBarra();
+      }
+
+      // ══════════════════════════════════════════
+      // TECLADO
+      // ══════════════════════════════════════════
+      document.addEventListener("keydown", (e) => {
+        if (!slides.length) return;
+        if (e.key === "ArrowRight" || e.key === " ") {
+          irParaSlide((slideIdx + 1) % slides.length);
+        } else if (e.key === "ArrowLeft") {
+          irParaSlide((slideIdx - 1 + slides.length) % slides.length);
+        } else if (e.key === "Escape") {
+          if (
+            !document
+              .getElementById("modalOverlay")
+              .classList.contains("hidden")
+          )
+            fecharModal();
+        } else if (e.key === "p" || e.key === "P") {
+          toggleAutoplay();
+        }
+      });
+
+      // ══════════════════════════════════════════
+      // INIT
+      // ══════════════════════════════════════════
+      window.onload = function () {
+        setPeriodoMesAtual();
+        abrirModal();
+
+        const body = document.getElementById("slideBody");
+        const el = document.createElement("div");
+        el.className = "slide active";
+        el.innerHTML = `
+        <div class="slide-empty-state">
+          <div class="slide-titulo-label">Aguardando configuração</div>
+          <div class="slide-titulo-h1" style="font-size:42px;color:var(--text3)">BI OPERACIONAL</div>
+          <div style="font-size:14px;color:var(--text3);margin-top:8px">
+            Configure o período e carregue os dados para iniciar a apresentação.
+          </div>
+        </div>`;
+        body.appendChild(el);
+      };
+    </script>
+  </body>
+</html>
