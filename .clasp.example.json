@@ -1,0 +1,9 @@
+{
+  "scriptId": "COLE_AQUI_O_SCRIPT_ID_DO_APPS_SCRIPT",
+  "rootDir": "",
+  "scriptExtensions": [".js", ".gs"],
+  "htmlExtensions": [".html"],
+  "jsonExtensions": [".json"],
+  "filePushOrder": [],
+  "skipSubdirectories": false
+}
