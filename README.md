@@ -1,6 +1,8 @@
 # BI Operacional - Controle de Ocorrencias
 
-Aplicacao web criada em Google Apps Script para acompanhar, registrar e apresentar ocorrencias operacionais da Viacao Catedral a partir de uma planilha Google Sheets.
+Aplicacao web criada em Google Apps Script para acompanhar, registrar e apresentar ocorrencias operacionais da Viacao Catedral.
+
+A fonte de dados opera em **modo hibrido**: o historico antigo continua sendo lido da planilha Google Sheets (read-only) e os registros novos passam a ser lidos e gravados no **Notion**. O passo a passo de configuracao do Notion esta em `NOTION_SETUP.md`.
 
 O projeto entrega dois modos principais:
 
@@ -10,7 +12,8 @@ O projeto entrega dois modos principais:
 ## Stack
 
 - Google Apps Script com runtime V8.
-- Google Sheets como base de dados.
+- Notion (API REST) como base de dados dos registros novos.
+- Google Sheets como base historica (somente leitura).
 - Google Drive para busca de documentos vinculados.
 - HTML, CSS e JavaScript no Google Apps Script HTML Service.
 - Chart.js 4.4.1 via CDN.
@@ -37,9 +40,9 @@ O arquivo `Código.js` concentra as funcoes chamadas pelo frontend:
 
 - `doGet(e)`: decide qual tela entregar. Por padrao abre o dashboard; com `?view=apresentacao` abre o modo apresentacao.
 - `getWebAppUrl()`: retorna a URL publicada do Web App para montar links internos.
-- `getDados(dataIni, dataFim)`: le a aba `CONTROLE`, filtra por periodo, normaliza os dados e devolve JSON para o frontend.
+- `getDados(dataIni, dataFim)`: mescla o historico da aba `CONTROLE` (`_getDadosPlanilha`) com os registros novos do Notion (`_getDadosNotion`), filtra por periodo e devolve JSON para o frontend. Cada registro traz um campo `origem` (`planilha` ou `notion`).
 - `getUrlArquivo(nomeArquivo)`: busca sob demanda a URL de um documento no Drive.
-- `registrarOcorrencias(json)`: recebe registros do dashboard e grava novas linhas na aba `CONTROLE`.
+- `registrarOcorrencias(json)`: recebe registros do dashboard e cria novas paginas no database do Notion (a planilha nao recebe mais linhas novas).
 
 ### Dashboard
 
@@ -62,11 +65,23 @@ O `abrirDashboard.js` cria um modal dentro da planilha com atalhos para abrir:
 - Dashboard;
 - Modo apresentacao.
 
-## Estrutura Esperada da Planilha
+## Fontes de Dados
 
-A aplicacao usa a planilha ativa do projeto Apps Script e espera uma aba chamada `CONTROLE`.
+### Notion (registros novos)
 
-Colunas lidas/escritas:
+A fonte ativa e um database do Notion. O esquema esperado (nomes das propriedades),
+a criacao da integracao, o `NOTION_TOKEN`, o `NOTION_DB_ID` e o `GESTORES_MAP` estao
+documentados em `NOTION_SETUP.md`. Os nomes das propriedades ficam na constante `NP`
+no topo da secao de configuracao do `Codigo.js` — unico ponto de acoplamento.
+
+### Planilha (historico, somente leitura)
+
+A aplicacao continua lendo a planilha ativa do projeto Apps Script (aba `CONTROLE`)
+apenas como historico. Nenhuma linha nova e gravada nela. A propriedade de script
+opcional `PLANILHA_ATE` (YYYY-MM-DD) permite pular a leitura da planilha quando o
+periodo consultado comeca depois do fim do historico.
+
+Colunas lidas:
 
 | Coluna | Campo | Uso |
 | --- | --- | --- |
@@ -83,14 +98,9 @@ Colunas lidas/escritas:
 | K | Base responsavel | Base operacional responsavel. |
 | L | Plantonista | Plantonista/CCO, com suporte a celulas mescladas. |
 
-Tambem pode existir uma aba `gestores`, com:
-
-| Coluna | Campo |
-| --- | --- |
-| A | Base |
-| B | Gestor |
-
-Essa aba alimenta os nomes de gestores exibidos nos rankings.
+O mapa Base -> Gestor (que antes vinha de uma aba `gestores`) agora fica na
+propriedade de script `GESTORES_MAP` (JSON), usada tanto para o historico quanto
+para os registros do Notion. Ver `NOTION_SETUP.md`.
 
 ## Configuracao
 

@@ -1375,7 +1375,7 @@
         </div>
         <div class="logo-text">
           <h1>Viação <span>Catedral</span></h1>
-          <p id="subheader">Carregando dados da planilha...</p>
+          <p id="subheader">Carregando dados...</p>
         </div>
       </div>
       <div class="header-meta">
@@ -1753,7 +1753,7 @@
             <button class="btn-add-row" onclick="adicionarLinhaRegistro()">+ Adicionar linha</button>
             <div style="display:flex;gap:10px">
               <button class="btn-secondary" onclick="fecharModalRegistro()">Cancelar</button>
-              <button class="btn-primary" id="btnEnviarRegistro" onclick="enviarRegistros()">Salvar na planilha</button>
+              <button class="btn-primary" id="btnEnviarRegistro" onclick="enviarRegistros()">Salvar no Notion</button>
             </div>
           </div>
         </div>
@@ -1948,7 +1948,7 @@
           popularFiltros();
           renderizar(filtrar());
           document.getElementById("subheader").textContent =
-            "Leitura direta da planilha · " +
+            "Planilha (histórico) + Notion · " +
             new Date().toLocaleString("pt-BR");
         } catch (e) {
           onErro(e);
@@ -2235,12 +2235,12 @@
             const r = JSON.parse(res);
             alert(`✓ ${r.linhas} ocorrência(s) registrada(s) com sucesso.`);
             fecharModalRegistro();
-            btn.textContent = "Salvar na planilha";
+            btn.textContent = "Salvar no Notion";
             btn.disabled = false;
           })
           .withFailureHandler(function (err) {
             alert("Erro ao salvar: " + err.message);
-            btn.textContent = "Salvar na planilha";
+            btn.textContent = "Salvar no Notion";
             btn.disabled = false;
           })
           .registrarOcorrencias(JSON.stringify({ plantonista, registros }));

@@ -2,6 +2,7 @@
 //  BI Ocorrências — Viação Catedral
 //  Code.gs — Google Apps Script Backend
 //  Dev: Lucas Inácio
+//  Fonte de dados: Notion (database de Ocorrências)
 // ============================================================
 
 // ------------------------
@@ -52,8 +53,38 @@ function normTipoBackend(t) {
     .join(" ");
 }
 
+// Extrai nome do motorista a partir do campo "Arquivo" no formato "0004 - NOME".
+// Aceita hífen (-) e travessões (–, —) misturados.
+function extrairMotorista(raw) {
+  let s = String(raw || "").trim();
+
+  // vazio ou marcador genérico
+  if (!s || s === "Arquivo") return "(sem motorista)";
+
+  // remove extensão (.pdf, .docx etc.)
+  s = s.replace(/\.[^.\s]+$/, "").trim();
+
+  // normaliza todos os tipos de traço para hífen simples
+  s = s.replace(/[–—]/g, "-");
+
+  // Esperamos algo como "4165 - NOME DO MOTORISTA - OUTRAS COISAS"
+  const parts = s
+    .split("-")
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  // parts[0] deve ser a matrícula (só dígitos), parts[1] o nome
+  if (parts.length >= 2 && /^\d{3,6}$/.test(parts[0])) {
+    const nome = parts[1].trim();
+    return nome || "(sem motorista)";
+  }
+
+  // Se não encaixar nesse padrão, não arrisca: trata como sem motorista
+  return "(sem motorista)";
+}
+
 // ------------------------
-// 3. Drive / Documentos
+// 3. Drive / Documentos  (mantido — anexos continuam no Drive)
 // ------------------------
 const _driveCache = {};
 const OCORRENCIAS_FOLDER_ID = "18dpaj1Fxp7IKAFouObzNetPu5zpj1OZA";
@@ -138,193 +169,315 @@ function getUrlArquivo(nomeArquivo) {
 }
 
 // ------------------------
-// 4. Dados da planilha / BI
+// 4. Configuração / cliente Notion
 // ------------------------
-// getDados() — versão nova com motorista / plantonista
-function getDados(dataIni, dataFim) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  Logger.log("Spreadsheet: " + ss.getName());
+// Versão da API do Notion (estável).
+const NOTION_VERSION = "2022-06-28";
 
-  const sheets = ss.getSheets().map((s) => s.getName());
-  Logger.log("Abas: " + sheets.join(", "));
+// Nomes das propriedades no database do Notion.
+// Se você renomear um campo no Notion, ajuste aqui — é o único ponto de acoplamento.
+const NP = {
+  prefixo: "Prefixo", // Title
+  tipo: "Tipo", // Select
+  detalhes: "Detalhes", // Text
+  apuracao: "Apuração", // Text (email do monitoramento)
+  status: "Status", // Select
+  dataPostagem: "Data postagem", // Date (usado nos filtros)
+  fimApuracao: "Fim apuração", // Date
+  arquivo: "Arquivo", // Text ("0004 - NOME"); usado p/ Drive e motorista
+  observacoes: "Observações", // Text
+  base: "Base", // Select
+  plantonista: "Plantonista", // Text
+};
 
-  const aba = ss.getSheetByName("CONTROLE");
-  if (!aba) {
+let _cfgCache = null;
+function _notionConfig() {
+  if (_cfgCache) return _cfgCache;
+  const props = PropertiesService.getScriptProperties();
+  const token = props.getProperty("NOTION_TOKEN");
+  const dbId = props.getProperty("NOTION_DB_ID");
+  if (!token || !dbId) {
     throw new Error(
-      'Aba "CONTROLE" não encontrada. Abas existentes: ' + sheets.join(", "),
+      "Configure NOTION_TOKEN e NOTION_DB_ID nas Propriedades do Script " +
+        "(Configurações do projeto → Propriedades do script).",
     );
   }
+  _cfgCache = { token: token, dbId: dbId };
+  return _cfgCache;
+}
 
-  // Monta mapa Base → Gestor a partir da aba "gestores"
-  const gestoresMap = {};
-  const abaGestores = ss.getSheetByName("gestores");
-  if (abaGestores && abaGestores.getLastRow() > 1) {
-    const gestoresVals = abaGestores
-      .getRange(2, 1, abaGestores.getLastRow() - 1, 2)
-      .getValues();
-    gestoresVals.forEach(function (row) {
-      const base = String(row[0] || "").trim();
-      const gestor = String(row[1] || "").trim();
-      if (base) gestoresMap[base] = gestor;
-    });
+// Mapa Base → Gestor (substitui a antiga aba "gestores").
+// Guardado como JSON na propriedade de script GESTORES_MAP.
+function _gestoresMap() {
+  const raw = PropertiesService.getScriptProperties().getProperty("GESTORES_MAP");
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    Logger.log("GESTORES_MAP inválido (não é JSON): " + e);
+    return {};
   }
-  const ultLinha = aba.getLastRow();
+}
 
-  const LINHA_INI = 2; // linha de início dos dados (2 = cabeçalho na linha 1)
-  const NUM_COLS = 12; // colunas A..L
-
-  if (ultLinha < LINHA_INI) {
-    return JSON.stringify([]);
-  }
-
-  const valores = aba
-    .getRange(LINHA_INI, 1, ultLinha - LINHA_INI + 1, NUM_COLS)
-    .getValues();
-
-  // Índices 0‑based
-  const COL_PREFIXO = 0; // A
-  const COL_TIPO = 1; // B
-  const COL_DETALHES = 2; // C
-  const COL_STATUS = 4; // E
-  const COL_DATA = 5; // F
-  const COL_ARQUIVO = 8; // I  (motorista / arquivo)
-  const COL_OBS = 9; // J  Observações
-  const COL_BASE = 10; // K  Base responsável
-  const COL_PLANTONISTA = 11; // L  Plantonista (mesclado)
-
-  // Filtro de datas
-  const dtIni = new Date(dataIni + "T00:00:00");
-  const dtFim = new Date(dataFim + "T23:59:59");
-
-  // Preencher para baixo a coluna mesclada (plantonista/base)
-  let ultimoPlantonista = "";
-  const plantonistaPorLinha = valores.map((row) => {
-    const val = String(row[COL_PLANTONISTA] || "").trim();
-    if (val !== "") ultimoPlantonista = val;
-    return ultimoPlantonista;
+// POST genérico para a API do Notion.
+function _notionFetch(path, payload) {
+  const cfg = _notionConfig();
+  const res = UrlFetchApp.fetch("https://api.notion.com/v1" + path, {
+    method: "post",
+    contentType: "application/json",
+    headers: {
+      Authorization: "Bearer " + cfg.token,
+      "Notion-Version": NOTION_VERSION,
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
   });
 
-  // Extrai nome do motorista da coluna I no formato "0004 - NOME"
-  // Extrai nome do motorista a partir da coluna I (Arquivo)
-  // Aceita formatos com hífen (-) e travessões (–, —), misturados.
-  // Exemplo esperado:
-
-  function extrairMotorista(raw) {
-    let s = String(raw || "").trim();
-
-    // vazio ou marcador genérico
-    if (!s || s === "Arquivo") return "(sem motorista)";
-
-    // remove extensão (.pdf, .docx etc.)
-    s = s.replace(/\.[^.\s]+$/, "").trim();
-
-    // normaliza todos os tipos de traço para hífen simples
-    s = s.replace(/[–—]/g, "-");
-
-    // Agora esperamos algo como:
-    // "4165 - NOME DO MOTORISTA - OUTRAS COISAS"
-    // Vamos dividir em partes pelo hífen
-    const parts = s
-      .split("-")
-      .map((p) => p.trim())
-      .filter(Boolean);
-
-    // parts[0] deve ser a matrícula (só dígitos), parts[1] o nome
-    if (parts.length >= 2 && /^\d{3,6}$/.test(parts[0])) {
-      const nome = parts[1].trim();
-      return nome || "(sem motorista)";
-    }
-
-    // Se não encaixar nesse padrão, não arrisca: trata como sem motorista
-    return "(sem motorista)";
+  const code = res.getResponseCode();
+  const body = res.getContentText();
+  if (code < 200 || code >= 300) {
+    throw new Error("Notion API " + code + ": " + body);
   }
+  return JSON.parse(body);
+}
 
-  // Normaliza datas vindas da planilha
-  function normData(val) {
-    if (!val) return null;
-    if (val instanceof Date) return val;
-    const parts = String(val).split("/");
-    if (parts.length === 3) {
-      // dd/mm/yyyy
-      return new Date(parts[2], parts[1] - 1, parts[0]);
-    }
-    return new Date(val);
-  }
+// --- Leitores de propriedades do Notion ---
+function _readTexto(prop) {
+  if (!prop) return "";
+  const arr = prop.rich_text || prop.title;
+  if (!arr || !arr.length) return "";
+  return arr
+    .map(function (t) {
+      return t.plain_text || "";
+    })
+    .join("")
+    .trim();
+}
 
-  const registros = [];
+function _readSelect(prop) {
+  return prop && prop.select ? String(prop.select.name).trim() : "";
+}
 
-  valores.forEach((row, i) => {
-    const dataBruta = normData(row[COL_DATA]);
-    if (!dataBruta || isNaN(dataBruta)) return;
-    if (dataBruta < dtIni || dataBruta > dtFim) return;
+function _readData(prop) {
+  return prop && prop.date && prop.date.start ? prop.date.start : null;
+}
 
-    const y = dataBruta.getFullYear();
-    const m = String(dataBruta.getMonth() + 1).padStart(2, "0");
-    const d = String(dataBruta.getDate()).padStart(2, "0");
+// Aceita tanto Select quanto Text para o mesmo campo (tolerante a como você montou o DB)
+function _readSelectOuTexto(prop) {
+  return _readSelect(prop) || _readTexto(prop);
+}
 
-    registros.push({
-      prefixo: String(row[COL_PREFIXO] || "").trim(),
-      tipo: String(row[COL_TIPO] || "").trim(),
-      detalhes: String(row[COL_DETALHES] || "").trim(),
-      status: String(row[COL_STATUS] || "").trim(),
-      data: `${y}-${m}-${d}`,
-      arquivo: String(row[COL_ARQUIVO] || "").trim(),
-      motorista: extrairMotorista(row[COL_ARQUIVO]),
-      plantonista: plantonistaPorLinha[i],
-      observacoes: String(row[COL_OBS] || "").trim(),
-      base: String(row[COL_BASE] || "").trim(), // vem da coluna K
-      gestor: gestoresMap[String(row[COL_BASE] || "").trim()] || "",
-    });
-  });
-  return JSON.stringify(registros);
+// Constrói o array rich_text/title a partir de uma string
+function _toRich(s) {
+  return [{ text: { content: String(s == null ? "" : s) } }];
 }
 
 // ------------------------
-// 5. Registro de ocorrências via dashboard
+// 5. Dados / BI  (modo híbrido: planilha [histórico] + Notion [novos])
+// ------------------------
+// getDados() — mescla o histórico antigo (Google Sheets) com os registros
+// novos (Notion) dentro do período pedido. Nada do passado se perde.
+function getDados(dataIni, dataFim) {
+  const daPlanilha = _getDadosPlanilha(dataIni, dataFim);
+  const doNotion = _getDadosNotion(dataIni, dataFim);
+  // Histórico primeiro, novos depois.
+  return JSON.stringify(daPlanilha.concat(doNotion));
+}
+
+// --- Fonte NOVA: Notion ---
+function _getDadosNotion(dataIni, dataFim) {
+  const cfg = _notionConfig();
+  const gestoresMap = _gestoresMap();
+
+  // Filtro de período direto na origem (mais eficiente que ler tudo).
+  const filtro = {
+    and: [
+      { property: NP.dataPostagem, date: { on_or_after: dataIni } },
+      { property: NP.dataPostagem, date: { on_or_before: dataFim } },
+    ],
+  };
+
+  const registros = [];
+  let cursor = null;
+
+  do {
+    const payload = {
+      filter: filtro,
+      page_size: 100,
+      sorts: [{ property: NP.dataPostagem, direction: "ascending" }],
+    };
+    if (cursor) payload.start_cursor = cursor;
+
+    const data = _notionFetch("/databases/" + cfg.dbId + "/query", payload);
+    const results = data.results || [];
+
+    results.forEach(function (page) {
+      const p = page.properties || {};
+
+      const dStart = _readData(p[NP.dataPostagem]);
+      if (!dStart) return; // sem data não entra (igual ao comportamento antigo)
+      const dataFmt = String(dStart).substring(0, 10); // YYYY-MM-DD
+
+      const arquivo = _readTexto(p[NP.arquivo]);
+      const base = _readSelectOuTexto(p[NP.base]);
+
+      registros.push({
+        prefixo: _readSelectOuTexto(p[NP.prefixo]),
+        tipo: _readSelectOuTexto(p[NP.tipo]),
+        detalhes: _readTexto(p[NP.detalhes]),
+        status: _readSelectOuTexto(p[NP.status]),
+        data: dataFmt,
+        arquivo: arquivo,
+        motorista: extrairMotorista(arquivo),
+        plantonista: _readSelectOuTexto(p[NP.plantonista]),
+        observacoes: _readTexto(p[NP.observacoes]),
+        base: base,
+        gestor: gestoresMap[base] || "",
+        origem: "notion",
+      });
+    });
+
+    cursor = data.has_more ? data.next_cursor : null;
+  } while (cursor);
+
+  return registros;
+}
+
+// --- Fonte HISTÓRICA: Google Sheets (aba CONTROLE) ---
+// Mantida read-only. Se a propriedade de script PLANILHA_ATE (YYYY-MM-DD)
+// estiver definida e o período pedido começar depois dela, a planilha é
+// ignorada (otimização: não lê o histórico quando só se quer dados novos).
+function _getDadosPlanilha(dataIni, dataFim) {
+  try {
+    const corte = PropertiesService.getScriptProperties().getProperty("PLANILHA_ATE");
+    if (corte && dataIni > corte) {
+      return []; // período começa depois do fim do histórico → nem abre a planilha
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) return [];
+
+    const aba = ss.getSheetByName("CONTROLE");
+    if (!aba) return [];
+
+    const gestoresMap = _gestoresMap();
+    const ultLinha = aba.getLastRow();
+
+    const LINHA_INI = 2; // dados começam na linha 2 (cabeçalho na 1)
+    const NUM_COLS = 12; // colunas A..L
+    if (ultLinha < LINHA_INI) return [];
+
+    const valores = aba
+      .getRange(LINHA_INI, 1, ultLinha - LINHA_INI + 1, NUM_COLS)
+      .getValues();
+
+    // Índices 0-based
+    const COL_PREFIXO = 0; // A
+    const COL_TIPO = 1; // B
+    const COL_DETALHES = 2; // C
+    const COL_STATUS = 4; // E
+    const COL_DATA = 5; // F
+    const COL_ARQUIVO = 8; // I
+    const COL_OBS = 9; // J
+    const COL_BASE = 10; // K
+    const COL_PLANTONISTA = 11; // L (célula mesclada)
+
+    const dtIni = new Date(dataIni + "T00:00:00");
+    const dtFim = new Date(dataFim + "T23:59:59");
+
+    // Preenche para baixo a coluna mesclada (plantonista)
+    let ultimoPlantonista = "";
+    const plantonistaPorLinha = valores.map(function (row) {
+      const val = String(row[COL_PLANTONISTA] || "").trim();
+      if (val !== "") ultimoPlantonista = val;
+      return ultimoPlantonista;
+    });
+
+    function normData(val) {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      const parts = String(val).split("/");
+      if (parts.length === 3) {
+        return new Date(parts[2], parts[1] - 1, parts[0]); // dd/mm/yyyy
+      }
+      return new Date(val);
+    }
+
+    const registros = [];
+    valores.forEach(function (row, i) {
+      const dataBruta = normData(row[COL_DATA]);
+      if (!dataBruta || isNaN(dataBruta)) return;
+      if (dataBruta < dtIni || dataBruta > dtFim) return;
+
+      const y = dataBruta.getFullYear();
+      const m = String(dataBruta.getMonth() + 1).padStart(2, "0");
+      const d = String(dataBruta.getDate()).padStart(2, "0");
+      const base = String(row[COL_BASE] || "").trim();
+
+      registros.push({
+        prefixo: String(row[COL_PREFIXO] || "").trim(),
+        tipo: String(row[COL_TIPO] || "").trim(),
+        detalhes: String(row[COL_DETALHES] || "").trim(),
+        status: String(row[COL_STATUS] || "").trim(),
+        data: y + "-" + m + "-" + d,
+        arquivo: String(row[COL_ARQUIVO] || "").trim(),
+        motorista: extrairMotorista(row[COL_ARQUIVO]),
+        plantonista: plantonistaPorLinha[i],
+        observacoes: String(row[COL_OBS] || "").trim(),
+        base: base,
+        gestor: gestoresMap[base] || "",
+        origem: "planilha",
+      });
+    });
+
+    return registros;
+  } catch (e) {
+    // Se a planilha não estiver acessível, não derruba os dados do Notion.
+    Logger.log("Falha ao ler planilha (histórico): " + e);
+    return [];
+  }
+}
+
+// ------------------------
+// 6. Registro de ocorrências via dashboard  (cria páginas no Notion)
 // ------------------------
 function registrarOcorrencias(json) {
-  var payload  = JSON.parse(json);
-  var plantonista = String(payload.plantonista || "").trim();
-  var itens       = payload.registros || [];
+  const payload = JSON.parse(json);
+  const plantonista = String(payload.plantonista || "").trim();
+  const itens = payload.registros || [];
 
   if (!itens.length) throw new Error("Nenhum registro para salvar.");
 
-  var ss  = SpreadsheetApp.getActiveSpreadsheet();
-  var aba = ss.getSheetByName("CONTROLE");
-  if (!aba) throw new Error('Aba "CONTROLE" não encontrada.');
+  const cfg = _notionConfig();
+  let salvos = 0;
 
-  var linhaInicio = aba.getLastRow() + 1;
+  itens.forEach(function (r) {
+    const props = {};
 
-  itens.forEach(function (r, i) {
-    var row = linhaInicio + i;
+    // Prefixo é o título da página (nome do veículo)
+    props[NP.prefixo] = { title: _toRich(r.prefixo || "") };
 
-    aba.getRange(row, 1).setValue(r.prefixo    || ""); // A – Prefixo
-    aba.getRange(row, 2).setValue(r.tipo       || ""); // B – Tipo
-    aba.getRange(row, 3).setValue(r.detalhes   || ""); // C – Detalhes
-    aba.getRange(row, 4).setValue("monitoramento@viacaocatedral.com.br"); // D – Apuração
-    aba.getRange(row, 5).setValue(r.status     || ""); // E – Status
+    if (r.tipo) props[NP.tipo] = { select: { name: String(r.tipo).trim() } };
+    if (r.detalhes) props[NP.detalhes] = { rich_text: _toRich(r.detalhes) };
 
-    if (r.dataPostagem) {                              // F – Data postagem
-      aba.getRange(row, 6).setValue(new Date(r.dataPostagem + "T12:00:00"));
-    }
-    if (r.dataFim) {                                   // G – Fim apuração
-      aba.getRange(row, 7).setValue(new Date(r.dataFim + "T12:00:00"));
-    }
-    // H – Dias em aberto → calculado por fórmula na planilha, não escrevemos
-    // I – Arquivo/Motorista → não utilizado neste fluxo
+    // Apuração: e-mail padrão do monitoramento (igual ao fluxo antigo)
+    props[NP.apuracao] = {
+      rich_text: _toRich("monitoramento@viacaocatedral.com.br"),
+    };
 
-    aba.getRange(row, 10).setValue(r.observacoes || ""); // J – Observações
-    aba.getRange(row, 11).setValue(r.base        || ""); // K – Base responsável
+    if (r.status) props[NP.status] = { select: { name: String(r.status).trim() } };
+    if (r.dataPostagem) props[NP.dataPostagem] = { date: { start: r.dataPostagem } };
+    if (r.dataFim) props[NP.fimApuracao] = { date: { start: r.dataFim } };
+    if (r.observacoes) props[NP.observacoes] = { rich_text: _toRich(r.observacoes) };
+    if (r.base) props[NP.base] = { select: { name: String(r.base).trim() } };
+    if (plantonista) props[NP.plantonista] = { rich_text: _toRich(plantonista) };
+
+    _notionFetch("/pages", {
+      parent: { database_id: cfg.dbId },
+      properties: props,
+    });
+    salvos++;
   });
 
-  // Coluna L – Plantonista em célula mesclada para o grupo
-  var rangeL = aba.getRange(linhaInicio, 12, itens.length, 1);
-  if (itens.length > 1) rangeL.mergeVertically();
-  rangeL.setValue(plantonista)
-        .setVerticalAlignment("middle")
-        .setHorizontalAlignment("center")
-        .setTextRotation(90)
-        .setWrap(false);
-
-  return JSON.stringify({ ok: true, linhas: itens.length });
+  return JSON.stringify({ ok: true, linhas: salvos });
 }
