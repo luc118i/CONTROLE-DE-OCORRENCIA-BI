@@ -1429,13 +1429,12 @@
           </button>
           <button
             type="button"
-            onclick="abrirModalRegistro()"
-            style="background:transparent;border:1px solid var(--borda2);color:var(--texto2);padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'Barlow',sans-serif;display:flex;align-items:center;gap:6px;transition:all .2s"
-            onmouseover="this.style.borderColor='var(--laranja)';this.style.color='var(--laranja)'"
-            onmouseout="this.style.borderColor='var(--borda2)';this.style.color='var(--texto2)'"
+            class="btn-whats"
+            onclick="abrirModalImport()"
+            title="Novo registro a partir da passagem do WhatsApp"
           >
-            <svg viewBox="0 0 12 12" width="11" height="11" fill="currentColor"><path d="M6 1v10M1 6h10"/></svg>
-            <span class="btn-apres-texto">Registrar</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.06L2 22l5.06-1.35A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.13c-.22.62-1.27 1.18-1.76 1.22-.47.05-.9.23-3.03-.63-2.56-1.03-4.18-3.66-4.3-3.83-.13-.17-1.04-1.38-1.04-2.64s.66-1.87.89-2.13c.23-.25.5-.31.67-.31h.48c.16 0 .36-.03.56.43.22.5.73 1.76.8 1.88.06.13.1.28.02.45-.08.17-.12.28-.24.43-.12.15-.26.33-.37.44-.12.12-.25.26-.11.5.14.25.62 1.03 1.34 1.67.92.82 1.7 1.08 1.94 1.2.24.13.38.11.52-.06.15-.17.6-.7.76-.94.16-.24.32-.2.54-.12.22.08 1.4.66 1.64.78.24.12.4.18.46.28.06.11.06.62-.16 1.23z"/></svg>
+            <span class="btn-apres-texto">WhatsApp</span>
           </button>
           <button
             id="btnApresentacao"
@@ -1754,6 +1753,207 @@
             <div style="display:flex;gap:10px">
               <button class="btn-secondary" onclick="fecharModalRegistro()">Cancelar</button>
               <button class="btn-primary" id="btnEnviarRegistro" onclick="enviarRegistros()">Salvar no Notion</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL – Importar passagem de serviço -->
+    <style>
+      .imp-chip{font-size:12px;background:rgba(255,255,255,.04);border:1px solid var(--borda2);padding:4px 10px;border-radius:8px;color:var(--texto2);display:inline-flex;align-items:center}
+      .imp-chip select{background:transparent;border:1px solid var(--borda2);border-radius:6px;color:var(--texto1);font-size:12px;padding:2px 4px}
+
+      /* Botão WhatsApp (entrada única de registro) */
+      .btn-whats{background:#25D366;border:none;color:#06321a;padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;display:flex;align-items:center;gap:7px;transition:transform .15s,box-shadow .15s,filter .15s;box-shadow:0 2px 10px rgba(37,211,102,.35)}
+      .btn-whats:hover{filter:brightness(1.06);transform:translateY(-1px);box-shadow:0 5px 16px rgba(37,211,102,.5)}
+      .btn-whats:active{transform:translateY(0) scale(.97)}
+
+      /* Toasts */
+      #toastContainer{position:fixed;top:18px;right:18px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+      .toast{display:flex;align-items:center;gap:11px;min-width:240px;max-width:380px;padding:12px 15px;border-radius:12px;background:#1c1f24;border:1px solid rgba(255,255,255,.08);color:#e9edf2;font-family:'Barlow',sans-serif;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;transform:translateX(24px);transition:opacity .25s ease,transform .25s ease;pointer-events:auto}
+      .toast.show{opacity:1;transform:translateX(0)}
+      .toast-ic{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:#fff}
+      .toast-success .toast-ic{background:#25a567}
+      .toast-error .toast-ic{background:#e0564f}
+      .toast-warning .toast-ic{background:#e0a32f;color:#2b2200}
+      .toast-info .toast-ic{background:#3a82d2}
+      .toast-success{border-color:rgba(37,165,103,.45)}
+      .toast-error{border-color:rgba(224,86,79,.45)}
+      .toast-warning{border-color:rgba(224,163,47,.45)}
+      .toast-msg{line-height:1.35}
+      .toast-spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:toastspin .7s linear infinite}
+      @keyframes toastspin{to{transform:rotate(360deg)}}
+
+      /* Área de upload do print */
+      .imp-drop{border:1.5px dashed var(--borda2);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;justify-content:center;min-height:130px}
+      .imp-drop:hover{border-color:var(--laranja);background:rgba(255,255,255,.02)}
+      .imp-drop.dragover{border-color:#25D366;background:rgba(37,211,102,.07)}
+      .imp-drop-empty{color:var(--texto3);display:flex;flex-direction:column;align-items:center;gap:2px}
+
+      /* ===== Estilização premium do modal de importação ===== */
+      #modalImport .modal-reg-backdrop{background:rgba(0,0,0,.68);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+      #modalImport .modal-reg-content{max-width:780px;border:1px solid var(--borda2);border-radius:18px;background:linear-gradient(180deg,#181818,#0f0f0f);box-shadow:0 30px 70px rgba(0,0,0,.65);animation:impIn .3s cubic-bezier(.2,.8,.2,1)}
+      @keyframes impIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+      #modalImport .modal-reg-header{background:transparent;border-bottom:1px solid var(--borda);padding:17px 24px}
+      #modalImport .modal-reg-title{font-size:15px;letter-spacing:.12em}
+      #modalImport .modal-veiculo-close{background:transparent;border:none;color:var(--texto3);font-size:20px;line-height:1;cursor:pointer;width:34px;height:34px;border-radius:9px;transition:all .15s}
+      #modalImport .modal-veiculo-close:hover{background:rgba(255,255,255,.06);color:var(--texto)}
+      #modalImport .modal-reg-body{padding:22px 24px}
+
+      /* Dropzone */
+      #modalImport .imp-drop{border-width:2px;border-radius:14px;min-height:155px;background:rgba(255,255,255,.015)}
+      #modalImport .imp-drop:hover{background:var(--laranja4)}
+      #modalImport #impDropEmpty svg{color:var(--texto3);transition:color .15s}
+      #modalImport .imp-drop:hover #impDropEmpty svg{color:var(--laranja)}
+      #modalImport #impImgThumb{box-shadow:0 10px 28px rgba(0,0,0,.55)}
+
+      /* Chips de metadados */
+      #modalImport .imp-chip{background:rgba(255,255,255,.05);border-color:var(--borda2);border-radius:10px;padding:7px 13px;font-weight:500;color:var(--texto2)}
+
+      /* Selects e inputs */
+      #modalImport select,#modalImport .reg-table input{background:var(--preto3);border:1px solid var(--cinza2);border-radius:9px;color:var(--texto);font-family:'Barlow',sans-serif;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s}
+      #modalImport select{appearance:none;-webkit-appearance:none;padding:8px 30px 8px 12px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23999' stroke-width='1.6'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;cursor:pointer}
+      #modalImport .reg-table input{padding:8px 11px;background-image:none}
+      #modalImport select:focus,#modalImport .reg-table input:focus{border-color:var(--laranja);box-shadow:0 0 0 3px var(--laranja3)}
+
+      /* Tabela fluida (sem scroll horizontal forçado) */
+      #modalImport .reg-table{min-width:0;width:100%;font-size:13px}
+      #modalImport .reg-table-wrap{overflow:visible}
+      #modalImport .reg-table th{background:transparent;border-bottom:1px solid var(--borda2);color:var(--texto3);padding:6px 8px}
+      #modalImport .reg-table td{border-bottom:1px solid var(--borda);padding:8px}
+      #modalImport .reg-table tbody tr{transition:background .15s}
+      #modalImport .reg-table tbody tr:hover{background:rgba(255,255,255,.02)}
+
+      /* Botões */
+      #modalImport .btn-primary{background:linear-gradient(180deg,var(--laranja),var(--laranja2));border:none;color:#fff;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;box-shadow:0 4px 14px var(--laranja3);transition:transform .12s,box-shadow .15s,filter .15s}
+      #modalImport .btn-primary:hover{filter:brightness(1.06);transform:translateY(-1px);box-shadow:0 7px 22px var(--laranja3)}
+      #modalImport .btn-primary:active{transform:translateY(0) scale(.98)}
+      #modalImport .btn-primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none;filter:none}
+      #modalImport .btn-secondary{background:transparent;border:1px solid var(--borda2);color:var(--texto2);border-radius:10px;padding:9px 18px;font-size:13px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .15s}
+      #modalImport .btn-secondary:hover{border-color:var(--texto2);color:var(--texto);background:rgba(255,255,255,.04)}
+
+      /* Footer */
+      #modalImport .modal-reg-footer{padding:16px 24px;border-top:1px solid var(--borda);background:rgba(0,0,0,.25);display:flex;justify-content:flex-end;align-items:center}
+
+      /* Lista aberta dos selects (dark + item selecionado laranja) */
+      #modalImport select option{background:#161616;color:var(--texto)}
+      #modalImport select option:checked{background:var(--laranja);color:#fff}
+
+      /* Campo de texto manual */
+      #modalImport textarea{background:var(--preto3) !important;border:1px solid var(--cinza2) !important;border-radius:9px;color:var(--texto);transition:border-color .15s,box-shadow .15s}
+      #modalImport textarea:focus{border-color:var(--laranja) !important;box-shadow:0 0 0 3px var(--laranja3)}
+
+      /* Campo de data editável */
+      #modalImport .imp-chip input[type="date"]{background:var(--preto3);border:1px solid var(--cinza2);border-radius:7px;color:var(--texto);font-family:'Barlow',sans-serif;font-size:13px;padding:4px 8px;outline:none;color-scheme:dark;transition:border-color .15s,box-shadow .15s}
+      #modalImport .imp-chip input[type="date"]:focus{border-color:var(--laranja);box-shadow:0 0 0 3px var(--laranja3)}
+
+      /* Dropdown customizado (Tipo / Plantonista) — controle total do tema */
+      #modalImport .csel{position:relative;display:block;width:100%}
+      #modalImport .imp-chip .csel{width:auto}
+      #modalImport .csel-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--preto3);border:1px solid var(--cinza2);border-radius:9px;color:var(--texto);font-family:'Barlow',sans-serif;font-size:13px;padding:8px 11px;cursor:pointer;transition:border-color .15s,box-shadow .15s;text-align:left}
+      #modalImport .imp-chip .csel-btn{width:auto;min-width:140px}
+      #modalImport .csel-btn:hover{border-color:var(--cinza3)}
+      #modalImport .csel.open .csel-btn{border-color:var(--laranja);box-shadow:0 0 0 3px var(--laranja3)}
+      #modalImport .csel-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      #modalImport .csel-arrow{color:var(--texto3);flex-shrink:0;transition:transform .18s}
+      #modalImport .csel.open .csel-arrow{transform:rotate(180deg)}
+      #modalImport .csel-list{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:50;background:#161616;border:1px solid var(--borda2);border-radius:10px;box-shadow:0 14px 34px rgba(0,0,0,.55);padding:5px;max-height:240px;overflow:auto;opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .15s,transform .15s}
+      #modalImport .imp-chip .csel-list{right:auto;min-width:100%}
+      #modalImport .csel.open .csel-list{opacity:1;transform:none;pointer-events:auto}
+      #modalImport .csel-opt{padding:7px 10px;border-radius:7px;font-size:13px;color:var(--texto2);cursor:pointer;white-space:nowrap;transition:background .12s,color .12s}
+      #modalImport .csel-opt:hover{background:var(--laranja4);color:var(--texto)}
+      #modalImport .csel-opt.sel{background:var(--laranja);color:#fff}
+      #modalImport .csel-opt.sel:hover{background:var(--laranja2)}
+      #modalImport .csel.up .csel-list{top:auto;bottom:calc(100% + 6px);transform:translateY(6px)}
+      #modalImport .csel.up.open .csel-list{transform:none}
+
+      /* Scrollbar temático (barra lateral) */
+      ::-webkit-scrollbar{width:11px;height:11px}
+      ::-webkit-scrollbar-track{background:transparent}
+      ::-webkit-scrollbar-thumb{background:var(--cinza2);border-radius:9px;border:3px solid transparent;background-clip:content-box}
+      ::-webkit-scrollbar-thumb:hover{background:var(--cinza3);background-clip:content-box}
+      html{scrollbar-width:thin;scrollbar-color:var(--cinza2) transparent}
+      #modalImport .modal-reg-body::-webkit-scrollbar-thumb:hover,
+      #modalImport textarea::-webkit-scrollbar-thumb:hover{background:var(--laranja);background-clip:content-box}
+
+      @media (max-width:600px){
+        #modalImport .modal-reg-content{width:calc(100vw - 16px);margin:8px auto;max-height:94vh;border-radius:14px}
+        #modalImport .modal-reg-body{padding:16px}
+        #modalImport .modal-reg-header{padding:14px 16px}
+      }
+    </style>
+    <div id="modalImport" class="modal-reg">
+      <div class="modal-reg-backdrop" onclick="fecharModalImport()"></div>
+      <div class="modal-reg-content">
+
+        <div class="modal-reg-header">
+          <div>
+            <div class="modal-reg-title">Importar passagem de serviço <span>WhatsApp → Notion</span></div>
+          </div>
+          <button class="modal-veiculo-close" onclick="fecharModalImport()">×</button>
+        </div>
+
+        <div class="modal-reg-body">
+          <div id="impDrop" class="imp-drop" onclick="document.getElementById('impFile').click()">
+            <input type="file" id="impFile" accept="image/*" style="display:none" />
+            <div id="impDropEmpty" class="imp-drop-empty">
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v13"/></svg>
+              <p style="margin:8px 0 2px;font-size:13px;color:var(--texto2)">Cole (Ctrl+V), arraste ou clique para enviar o print</p>
+              <p style="margin:0;font-size:11px">a IA lê o texto do WhatsApp pra você</p>
+            </div>
+            <div id="impImgPreview" style="display:none;align-items:center;gap:14px">
+              <img id="impImgThumb" alt="print" style="max-height:120px;max-width:200px;border-radius:8px;border:1px solid var(--borda2)" />
+              <button class="btn-secondary" style="padding:4px 12px;font-size:11px" onclick="event.stopPropagation();removerImpImg()">Remover</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+            <button class="btn-primary" onclick="interpretarColado()">Interpretar</button>
+            <span id="impMeta" style="font-size:12px;color:var(--texto3)"></span>
+            <a onclick="toggleTextoManual()" style="margin-left:auto;font-size:11px;color:var(--texto3);cursor:pointer;text-decoration:underline">colar texto manualmente</a>
+          </div>
+
+          <div id="impTextoWrap" style="display:none;margin-top:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:11px;color:var(--texto3);text-transform:uppercase;letter-spacing:.06em">Texto manual</span>
+              <button class="btn-secondary" style="padding:3px 12px;font-size:11px" onclick="ocultarTextoManual()">Ocultar campo</button>
+            </div>
+            <textarea id="impTexto" placeholder="Cole o texto da passagem aqui..."
+              style="width:100%;min-height:100px;resize:vertical;font-family:'Barlow',monospace;font-size:12px;padding:10px;border-radius:8px;border:1px solid var(--borda2);background:transparent;color:var(--texto1)"></textarea>
+          </div>
+
+          <div id="impResultado" style="display:none;margin-top:14px">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px">
+              <span class="imp-chip">Data de postagem:
+                <input type="date" id="impData" style="margin-left:6px" />
+              </span>
+              <span class="imp-chip">Plantonista:
+                <select id="impPlantonista" style="margin-left:6px"></select>
+              </span>
+            </div>
+
+            <p style="font-size:13px;color:var(--verde,#3ba776);margin:0 0 6px">Vão ser registradas (<span id="impCountOk">0</span>)</p>
+            <div class="reg-table-wrap">
+              <table class="reg-table">
+                <thead>
+                  <tr><th style="width:80px">Prefixo</th><th>Detalhes (do WhatsApp)</th><th style="width:200px">Tipo</th><th style="width:32px"></th></tr>
+                </thead>
+                <tbody id="impBodyOk"></tbody>
+              </table>
+            </div>
+
+            <p style="font-size:13px;color:var(--texto3);margin:14px 0 6px">Ignoradas (<span id="impCountIgn">0</span>) — não casaram com nenhum tipo</p>
+            <div id="impBodyIgn" style="border:1px dashed var(--borda2);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--texto3)"></div>
+          </div>
+        </div>
+
+        <div class="modal-reg-footer">
+          <div class="reg-actions" style="margin-left:auto">
+            <div style="display:flex;gap:10px">
+              <button class="btn-secondary" onclick="fecharModalImport()">Cancelar</button>
+              <button class="btn-primary" id="btnEnviarImport" onclick="salvarImportadas()" disabled>Salvar no Notion</button>
             </div>
           </div>
         </div>
@@ -2175,6 +2375,456 @@
 
       function fecharModalRegistro() {
         document.getElementById("modalRegistro").style.display = "none";
+      }
+
+      // ---------- Toasts ----------
+      function _toastContainer() {
+        let c = document.getElementById("toastContainer");
+        if (!c) {
+          c = document.createElement("div");
+          c.id = "toastContainer";
+          document.body.appendChild(c);
+        }
+        return c;
+      }
+
+      function showToast(type, message, opts) {
+        opts = opts || {};
+        const icons = { success: "✓", error: "✕", warning: "!", info: "i" };
+        const id = "toast-" + Date.now() + Math.random().toString(36).slice(2, 6);
+        const el = document.createElement("div");
+        el.className = "toast toast-" + type;
+        el.id = id;
+        const ic =
+          type === "loading"
+            ? '<span class="toast-spin"></span>'
+            : icons[type] || "";
+        el.innerHTML =
+          '<span class="toast-ic">' +
+          ic +
+          '</span><span class="toast-msg">' +
+          message +
+          "</span>";
+        _toastContainer().appendChild(el);
+        requestAnimationFrame(() => el.classList.add("show"));
+        const dur =
+          opts.duration != null
+            ? opts.duration
+            : type === "error"
+              ? 5000
+              : 3200;
+        if (type !== "loading" && dur > 0) setTimeout(() => dismissToast(id), dur);
+        return id;
+      }
+
+      function dismissToast(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 250);
+      }
+
+      // ---------- Dropdown customizado ----------
+      function enhanceSelect(sel) {
+        if (!sel || sel._enhanced) return sel;
+        sel._enhanced = true;
+        sel.style.display = "none";
+
+        const wrap = document.createElement("div");
+        wrap.className = "csel";
+        sel.parentNode.insertBefore(wrap, sel);
+        wrap.appendChild(sel);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "csel-btn";
+        btn.innerHTML =
+          '<span class="csel-val"></span><svg class="csel-arrow" viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+        wrap.appendChild(btn);
+        const val = btn.querySelector(".csel-val");
+
+        const list = document.createElement("div");
+        list.className = "csel-list";
+        wrap.appendChild(list);
+        list.addEventListener("click", (e) => e.stopPropagation());
+
+        function sync() {
+          const o = sel.options[sel.selectedIndex];
+          val.textContent = o ? o.textContent : "";
+        }
+        function build() {
+          list.innerHTML = "";
+          Array.from(sel.options).forEach((o, i) => {
+            const it = document.createElement("div");
+            it.className = "csel-opt" + (i === sel.selectedIndex ? " sel" : "");
+            it.textContent = o.textContent;
+            it.addEventListener("click", () => {
+              sel.selectedIndex = i;
+              sel.dispatchEvent(new Event("change"));
+              sync();
+              wrap.classList.remove("open");
+            });
+            list.appendChild(it);
+          });
+        }
+        function posicionar() {
+          const cont =
+            wrap.closest(".modal-reg-body") || document.documentElement;
+          const cr = cont.getBoundingClientRect();
+          const br = btn.getBoundingClientRect();
+          const altLista = Math.min(list.scrollHeight + 12, 252);
+          const abaixo = cr.bottom - br.bottom;
+          const acima = br.top - cr.top;
+          if (abaixo < altLista && acima > abaixo) wrap.classList.add("up");
+          else wrap.classList.remove("up");
+        }
+
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const aberto = wrap.classList.contains("open");
+          document
+            .querySelectorAll(".csel.open")
+            .forEach((w) => w.classList.remove("open"));
+          if (!aberto) {
+            build();
+            posicionar();
+            wrap.classList.add("open");
+          }
+        });
+
+        sel._cselSync = sync;
+        sync();
+        return sel;
+      }
+
+      document.addEventListener("click", () =>
+        document
+          .querySelectorAll(".csel.open")
+          .forEach((w) => w.classList.remove("open")),
+      );
+
+      // ---------- Importar passagem de serviço ----------
+      let _impData = null;
+      let _impImg = null;
+
+      function _attr(s) {
+        return String(s || "").replace(/"/g, "&quot;");
+      }
+
+      function setImpImg(file) {
+        if (!file || file.type.indexOf("image") !== 0) return;
+        const reader = new FileReader();
+        reader.onload = function () {
+          const dataUrl = reader.result;
+          _impImg = {
+            dataUrl: dataUrl,
+            mime: file.type || "image/png",
+            base64: String(dataUrl).split(",")[1],
+          };
+          document.getElementById("impImgThumb").src = dataUrl;
+          document.getElementById("impImgPreview").style.display = "flex";
+          document.getElementById("impDropEmpty").style.display = "none";
+          showToast("info", "Print anexado. Clique em Interpretar.");
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function removerImpImg() {
+        _impImg = null;
+        document.getElementById("impImgPreview").style.display = "none";
+        document.getElementById("impDropEmpty").style.display = "flex";
+        document.getElementById("impImgThumb").src = "";
+        document.getElementById("impFile").value = "";
+      }
+
+      function toggleTextoManual() {
+        const wrap = document.getElementById("impTextoWrap");
+        const mostrar = wrap.style.display === "none";
+        wrap.style.display = mostrar ? "block" : "none";
+        if (mostrar) document.getElementById("impTexto").focus();
+      }
+
+      function ocultarTextoManual() {
+        document.getElementById("impTextoWrap").style.display = "none";
+      }
+
+      function abrirModalImport() {
+        document.getElementById("impTexto").value = "";
+        document.getElementById("impMeta").textContent = "";
+        document.getElementById("impResultado").style.display = "none";
+        document.getElementById("btnEnviarImport").disabled = true;
+        _impData = null;
+        removerImpImg();
+        document.getElementById("modalImport").style.display = "block";
+        setTimeout(() => document.getElementById("impTexto").focus(), 50);
+      }
+
+      function _modalImportAberto() {
+        const m = document.getElementById("modalImport");
+        return m && m.style.display === "block";
+      }
+
+      // Clique → seletor de arquivo
+      document
+        .getElementById("impFile")
+        .addEventListener("change", function () {
+          if (this.files && this.files[0]) setImpImg(this.files[0]);
+        });
+
+      // Colar (Ctrl+V) print em qualquer lugar com o modal aberto
+      document.addEventListener("paste", function (e) {
+        if (!_modalImportAberto()) return;
+        const items = (e.clipboardData || {}).items || [];
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") === 0) {
+            setImpImg(items[i].getAsFile());
+            e.preventDefault();
+            return;
+          }
+        }
+      });
+
+      // Arrastar e soltar na área de upload (com feedback visual)
+      (function () {
+        const drop = document.getElementById("impDrop");
+        const m = document.getElementById("modalImport");
+        ["dragover", "dragenter"].forEach((ev) =>
+          m.addEventListener(ev, (e) => e.preventDefault()),
+        );
+        ["dragover", "dragenter"].forEach((ev) =>
+          drop.addEventListener(ev, (e) => {
+            e.preventDefault();
+            drop.classList.add("dragover");
+          }),
+        );
+        ["dragleave", "drop"].forEach((ev) =>
+          drop.addEventListener(ev, () => drop.classList.remove("dragover")),
+        );
+        drop.addEventListener("drop", function (e) {
+          e.preventDefault();
+          const f = (e.dataTransfer.files || [])[0];
+          if (f) setImpImg(f);
+        });
+      })();
+
+      // Ctrl+Enter: interpreta (se ainda não) ou salva (se já tem prévia)
+      document.addEventListener("keydown", function (e) {
+        if (!(e.ctrlKey && e.key === "Enter")) return;
+        const modal = document.getElementById("modalImport");
+        if (!modal || modal.style.display !== "block") return;
+        e.preventDefault();
+        const temPrevia =
+          document.getElementById("impResultado").style.display === "block";
+        if (temPrevia) salvarImportadas();
+        else interpretarColado();
+      });
+
+      function fecharModalImport() {
+        document.getElementById("modalImport").style.display = "none";
+      }
+
+      function _impTipoOptions(opcoes, selected) {
+        const tipos = (opcoes.tipo || []).slice();
+        // garante que o Tipo sugerido apareça mesmo se a lista viva não o tiver
+        if (selected && tipos.indexOf(selected) === -1) tipos.unshift(selected);
+        let html = '<option value="">— ignorar —</option>';
+        tipos.forEach((t) => {
+          const sel = t === selected ? " selected" : "";
+          html += `<option value="${t}"${sel}>${t}</option>`;
+        });
+        return html;
+      }
+
+      function interpretarColado() {
+        const texto = document.getElementById("impTexto").value.trim();
+        if (!_impImg && !texto) {
+          showToast("warning", "Cole o texto ou um print da passagem.");
+          return;
+        }
+
+        const loading = showToast(
+          "loading",
+          _impImg ? "Lendo o print com IA..." : "Interpretando a passagem...",
+          { duration: 0 },
+        );
+
+        const onOk = function (json) {
+          dismissToast(loading);
+          _impData = JSON.parse(json);
+          if (_impData.texto)
+            document.getElementById("impTexto").value = _impData.texto;
+          renderImport(_impData);
+          const n = (_impData.registros || []).length;
+          showToast(
+            n ? "success" : "warning",
+            n
+              ? n + " ocorrência(s) reconhecida(s)."
+              : "Nenhuma ocorrência casou com um tipo.",
+          );
+        };
+        const onFail = function (err) {
+          dismissToast(loading);
+          showToast("error", "Erro ao interpretar: " + err.message);
+        };
+
+        if (_impImg) {
+          google.script.run
+            .withSuccessHandler(onOk)
+            .withFailureHandler(onFail)
+            .interpretarImagem(_impImg.base64, _impImg.mime);
+        } else {
+          google.script.run
+            .withSuccessHandler(onOk)
+            .withFailureHandler(onFail)
+            .interpretarPassagem(texto);
+        }
+      }
+
+      function _impRowHtml(id, r, opcoes, tipoSel) {
+        return `<tr id="imp-ok-${id}">
+            <td><input class="imp-prefixo" value="${_attr(r.prefixo)}" style="width:72px;font-family:monospace" /></td>
+            <td><input class="imp-detalhes" value="${_attr(r.detalhes)}" style="width:100%" /></td>
+            <td><select class="imp-tipo" onchange="atualizarCountOk()">${_impTipoOptions(opcoes, tipoSel)}</select></td>
+            <td><button class="btn-rem-row" onclick="removerImpLinha('${id}')" title="Remover">✕</button></td>
+          </tr>`;
+      }
+
+      function atualizarCountOk() {
+        const rows = document.querySelectorAll("#impBodyOk tr");
+        let n = 0;
+        rows.forEach((tr) => {
+          if (tr.querySelector(".imp-tipo").value) n++;
+        });
+        document.getElementById("impCountOk").textContent = n;
+      }
+
+      function renderIgnoradas() {
+        const ign = (_impData && _impData.ignoradas) || [];
+        document.getElementById("impCountIgn").textContent = ign.length;
+        document.getElementById("impBodyIgn").innerHTML = ign.length
+          ? ign
+              .map(
+                (r, i) =>
+                  `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;align-items:center">
+                    <span><span style="font-family:monospace">${r.prefixo}</span> · ${r.detalhes}</span>
+                    <button class="btn-add-row" style="padding:2px 8px;font-size:11px" onclick="resgatarIgnorada(${i})">incluir</button>
+                  </div>`,
+              )
+              .join("")
+          : '<span style="color:var(--texto3)">nenhuma</span>';
+      }
+
+      function renderImport(d) {
+        const opcoes = d.opcoes || { tipo: [], plantonista: [] };
+
+        document.getElementById("impData").value = d.data || _hoje();
+
+        let pl = '<option value="">— escolher —</option>';
+        (opcoes.plantonista || []).forEach((p) => {
+          const sel = p === d.plantonista ? " selected" : "";
+          pl += `<option value="${p}"${sel}>${p}</option>`;
+        });
+        const plSel = document.getElementById("impPlantonista");
+        plSel.innerHTML = pl;
+        enhanceSelect(plSel);
+        if (plSel._cselSync) plSel._cselSync();
+
+        const bodyOk = document.getElementById("impBodyOk");
+        bodyOk.innerHTML = (d.registros || [])
+          .map((r, i) => _impRowHtml(i, r, opcoes, r.tipo))
+          .join("");
+        document.querySelectorAll("#impBodyOk .imp-tipo").forEach(enhanceSelect);
+
+        renderIgnoradas();
+        atualizarCountOk();
+
+        document.getElementById("impResultado").style.display = "block";
+        document.getElementById("btnEnviarImport").disabled = false;
+      }
+
+      function removerImpLinha(id) {
+        const tr = document.getElementById("imp-ok-" + id);
+        if (tr) tr.remove();
+        atualizarCountOk();
+      }
+
+      function resgatarIgnorada(i) {
+        const r = (_impData.ignoradas || [])[i];
+        if (!r) return;
+        _impData.ignoradas.splice(i, 1); // tira da lista de ignoradas
+        const id = "x" + Date.now();
+        document
+          .getElementById("impBodyOk")
+          .insertAdjacentHTML(
+            "beforeend",
+            _impRowHtml(id, r, _impData.opcoes, ""),
+          );
+        enhanceSelect(document.querySelector("#imp-ok-" + id + " .imp-tipo"));
+        renderIgnoradas();
+        atualizarCountOk();
+      }
+
+      function salvarImportadas() {
+        const plantonista = document.getElementById("impPlantonista").value;
+        const dataPost = document.getElementById("impData").value || _hoje();
+        const rows = document.querySelectorAll("#impBodyOk tr");
+        const registros = [];
+        rows.forEach((tr) => {
+          const tipo = tr.querySelector(".imp-tipo").value;
+          const prefixo = (tr.querySelector(".imp-prefixo").value || "").trim();
+          const detalhes = (tr.querySelector(".imp-detalhes").value || "").trim();
+          if (!tipo || !prefixo) return; // sem tipo ou prefixo, pula
+          registros.push({
+            prefixo: prefixo,
+            tipo: tipo,
+            detalhes: detalhes,
+            status: "Novo",
+            dataPostagem: dataPost,
+          });
+        });
+
+        if (!registros.length) {
+          showToast("warning", "Nenhuma ocorrência com tipo definido para salvar.");
+          return;
+        }
+        if (
+          !plantonista &&
+          !confirm("Plantonista não definido. Salvar mesmo assim (em branco)?")
+        ) {
+          return;
+        }
+
+        const btn = document.getElementById("btnEnviarImport");
+        if (btn.disabled) return; // evita duplo clique
+        btn.textContent = "Salvando...";
+        btn.disabled = true;
+        const loading = showToast(
+          "loading",
+          "Salvando " + registros.length + " no Notion...",
+          { duration: 0 },
+        );
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            dismissToast(loading);
+            const r = JSON.parse(res);
+            showToast(
+              "success",
+              "✅ " + r.linhas + " ocorrência(s) salva(s) no Notion.",
+            );
+            fecharModalImport();
+            btn.textContent = "Salvar no Notion";
+            btn.disabled = false;
+            // atualiza o dashboard pra já mostrar as novas
+            if (typeof aplicarFiltros === "function") aplicarFiltros();
+          })
+          .withFailureHandler(function (err) {
+            dismissToast(loading);
+            showToast("error", "❌ Falha ao salvar: " + err.message);
+            btn.textContent = "Salvar no Notion";
+            btn.disabled = false;
+          })
+          .registrarOcorrencias(JSON.stringify({ plantonista, registros }));
       }
 
       function adicionarLinhaRegistro() {

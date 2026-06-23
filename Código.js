@@ -241,6 +241,25 @@ function _notionFetch(path, payload) {
   return JSON.parse(body);
 }
 
+// GET genérico para a API do Notion (ex.: schema do database).
+function _notionGet(path) {
+  const cfg = _notionConfig();
+  const res = UrlFetchApp.fetch("https://api.notion.com/v1" + path, {
+    method: "get",
+    headers: {
+      Authorization: "Bearer " + cfg.token,
+      "Notion-Version": NOTION_VERSION,
+    },
+    muteHttpExceptions: true,
+  });
+  const code = res.getResponseCode();
+  const body = res.getContentText();
+  if (code < 200 || code >= 300) {
+    throw new Error("Notion API " + code + ": " + body);
+  }
+  return JSON.parse(body);
+}
+
 // --- Leitores de propriedades do Notion ---
 function _readTexto(prop) {
   if (!prop) return "";
@@ -441,6 +460,27 @@ function _getDadosPlanilha(dataIni, dataFim) {
 // ------------------------
 // 6. Registro de ocorrências via dashboard  (cria páginas no Notion)
 // ------------------------
+// Formata um valor de acordo com o TIPO real da propriedade no Notion.
+// Evita erros de "X is expected to be select/date/..." quando o schema muda.
+function _propPorTipo(prop, valor) {
+  if (valor == null || String(valor).trim() === "") return null;
+  const v = String(valor).trim();
+  switch (prop.type) {
+    case "title": return { title: _toRich(v) };
+    case "rich_text": return { rich_text: _toRich(v) };
+    case "select": return { select: { name: v } };
+    case "multi_select": return { multi_select: [{ name: v }] };
+    case "status": return { status: { name: v } };
+    case "date": return { date: { start: v } };
+    case "number": return { number: Number(v) };
+    case "email": return { email: v };
+    case "phone_number": return { phone_number: v };
+    case "url": return { url: v };
+    case "checkbox": return { checkbox: v === "true" || v === true };
+    default: return { rich_text: _toRich(v) };
+  }
+}
+
 function registrarOcorrencias(json) {
   const payload = JSON.parse(json);
   const plantonista = String(payload.plantonista || "").trim();
@@ -449,28 +489,31 @@ function registrarOcorrencias(json) {
   if (!itens.length) throw new Error("Nenhum registro para salvar.");
 
   const cfg = _notionConfig();
+  const schema = (_notionGet("/databases/" + cfg.dbId).properties) || {};
   let salvos = 0;
 
   itens.forEach(function (r) {
+    // Mapa campo (nome no Notion) -> valor
+    const campos = {};
+    campos[NP.prefixo] = r.prefixo;
+    campos[NP.tipo] = r.tipo;
+    campos[NP.detalhes] = r.detalhes;
+    campos[NP.status] = r.status;
+    campos[NP.dataPostagem] = r.dataPostagem;
+    campos[NP.fimApuracao] = r.dataFim;
+    campos[NP.observacoes] = r.observacoes;
+    campos[NP.base] = r.base;
+    campos[NP.plantonista] = plantonista;
+
+    // Formata cada campo conforme o tipo real da propriedade; ignora o que
+    // não existir no schema (não quebra a gravação inteira).
     const props = {};
-
-    // Prefixo é o título da página (nome do veículo)
-    props[NP.prefixo] = { title: _toRich(r.prefixo || "") };
-
-    if (r.tipo) props[NP.tipo] = { select: { name: String(r.tipo).trim() } };
-    if (r.detalhes) props[NP.detalhes] = { rich_text: _toRich(r.detalhes) };
-
-    // Apuração: e-mail padrão do monitoramento (igual ao fluxo antigo)
-    props[NP.apuracao] = {
-      rich_text: _toRich("monitoramento@viacaocatedral.com.br"),
-    };
-
-    if (r.status) props[NP.status] = { select: { name: String(r.status).trim() } };
-    if (r.dataPostagem) props[NP.dataPostagem] = { date: { start: r.dataPostagem } };
-    if (r.dataFim) props[NP.fimApuracao] = { date: { start: r.dataFim } };
-    if (r.observacoes) props[NP.observacoes] = { rich_text: _toRich(r.observacoes) };
-    if (r.base) props[NP.base] = { select: { name: String(r.base).trim() } };
-    if (plantonista) props[NP.plantonista] = { rich_text: _toRich(plantonista) };
+    Object.keys(campos).forEach(function (nome) {
+      const prop = schema[nome];
+      if (!prop) return;
+      const formatado = _propPorTipo(prop, campos[nome]);
+      if (formatado) props[nome] = formatado;
+    });
 
     _notionFetch("/pages", {
       parent: { database_id: cfg.dbId },
@@ -480,4 +523,197 @@ function registrarOcorrencias(json) {
   });
 
   return JSON.stringify({ ok: true, linhas: salvos });
+}
+
+// ------------------------
+// 7. Importar passagem de serviço (WhatsApp -> Notion)
+// ------------------------
+
+// Opções vivas do database (Tipo/Status/Plantonista/Base) — evita lista hardcoded
+// no front e impede criar opções-lixo no Notion.
+function getOpcoesNotion() {
+  const cfg = _notionConfig();
+  const db = _notionGet("/databases/" + cfg.dbId);
+  const props = db.properties || {};
+
+  function opts(nome) {
+    const p = props[nome];
+    if (p && p.select && p.select.options)
+      return p.select.options.map(function (o) { return o.name; });
+    if (p && p.multi_select && p.multi_select.options)
+      return p.multi_select.options.map(function (o) { return o.name; });
+    return [];
+  }
+
+  // Rede de segurança: se o schema não trouxer as opções de Tipo, usa os
+  // Tipos do dicionário (curados a partir do Notion) + Pneu/Outros, para o
+  // select nunca ficar vazio.
+  var tipo = opts(NP.tipo);
+  if (!tipo.length) {
+    tipo = _tipoMapDefault().map(function (e) { return e[0]; });
+    tipo.push("Pneu");
+    tipo.push("Outros");
+  }
+
+  return JSON.stringify({
+    tipo: tipo,
+    status: opts(NP.status),
+    plantonista: opts(NP.plantonista),
+    base: opts(NP.base),
+  });
+}
+
+// Remove acentos e baixa caixa, para comparação tolerante.
+function _deburr(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "");
+}
+
+// Dicionário palavra-chave -> Tipo (defaults). Pode ser estendido pela
+// propriedade de script TIPO_MAP (JSON { "Tipo": ["kw1","kw2"] }).
+// Ordem importa: o primeiro Tipo que casar vence (mais específico primeiro).
+function _tipoMapDefault() {
+  return [
+    ["PANE SECA", ["pane seca", "sem combustivel", "nao abasteceu", "faltou diesel", "ficou sem diesel"]],
+    ["COLISÃO COM VÍTIMA", ["vitima", "ferido", "atropel", "feriment"]],
+    ["Colisão com terceiro", ["colisao", "colidiu", "bateu", "abalro", "acidente", "terceiro"]],
+    ["AVARIA", ["avaria", "para-brisa", "parabrisa", "para brisa", "arranhad", "amassad", "trincad", "bagageiro", "parachoque", "retrovisor", "vidro"]],
+    ["PAX EM SURTO", ["surto", "transtorno", "agressiv", "descontrol"]],
+    ["PAX DETIDO PELA POLÍCIA", ["detido", "policia", "prf", "preso"]],
+    ["PAX deixado para trás", ["deixado para tras", "ficou no ponto", "passa_sem", "deixou o pax", "deixou passageiro"]],
+    ["PAX SEM EMBARQUE", ["sem embarque", "nao embarcou", "perdeu o onibus", "nao conseguiu embarcar"]],
+    ["PAX em atendimento", ["passou mal", "atendimento", "medic", "samu", "ambulancia", "passa_passa", "mal subito", "desmai"]],
+    ["SEM MOTORISTA", ["sem motorista", "motorista nao compareceu", "falta de motorista", "ausencia de motorista"]],
+    ["ASSÉDIO", ["assedio", "importun"]],
+  ];
+}
+
+function _tipoMap() {
+  const base = _tipoMapDefault();
+  const raw = PropertiesService.getScriptProperties().getProperty("TIPO_MAP");
+  if (raw) {
+    try {
+      const extra = JSON.parse(raw);
+      Object.keys(extra).forEach(function (tipo) {
+        const kws = (extra[tipo] || []).map(_deburr);
+        const existente = base.filter(function (e) { return e[0] === tipo; })[0];
+        if (existente) existente[1] = existente[1].concat(kws);
+        else base.push([tipo, kws]);
+      });
+    } catch (e) {
+      Logger.log("TIPO_MAP inválido: " + e);
+    }
+  }
+  return base;
+}
+
+// Classifica uma descrição em um Tipo (ou "" se não casar).
+// O dicionário já usa os Tipos reais do Notion, então não filtramos por lista.
+function _classificarTipo(desc) {
+  const d = _deburr(desc);
+  const mapa = _tipoMap();
+  for (var i = 0; i < mapa.length; i++) {
+    const kws = mapa[i][1];
+    for (var j = 0; j < kws.length; j++) {
+      if (kws[j] && d.indexOf(_deburr(kws[j])) !== -1) return mapa[i][0];
+    }
+  }
+  return "";
+}
+
+// Casa o operador do cabeçalho com uma opção do Select Plantonista (pelo 1º nome).
+function _matchPlantonista(operador, opcoes) {
+  const op = _deburr(operador);
+  for (var i = 0; i < opcoes.length; i++) {
+    const primeiro = _deburr(opcoes[i]).split(/\s+/)[0];
+    if (primeiro && new RegExp("\\b" + primeiro + "\\b").test(op)) return opcoes[i];
+  }
+  return "";
+}
+
+// Interpreta o texto colado da passagem de serviço e devolve a prévia.
+function interpretarPassagem(texto) {
+  const opcoes = JSON.parse(getOpcoesNotion());
+  const txt = String(texto || "");
+
+  // Cabeçalho: data (dd/mm/yyyy) e operador ("NOME - CCO XXX")
+  var data = "";
+  const mData = txt.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (mData) data = mData[3] + "-" + mData[2] + "-" + mData[1];
+
+  var operador = "";
+  const mOp = txt.match(/([^\n\-–]+?)\s*[-–]\s*CCO\b/i);
+  if (mOp) operador = mOp[1].trim();
+
+  const plantonista = _matchPlantonista(operador, opcoes.plantonista || []);
+
+  // Linhas "prefixo – descrição" (prefixo = 4-5 dígitos)
+  const registros = [];
+  const ignoradas = [];
+  const vistos = {};
+
+  txt.split(/\r?\n/).forEach(function (linha) {
+    const m = linha.match(/(\d{4,5})\s*[–-]\s*(.+)$/);
+    if (!m) return;
+    const prefixo = m[1];
+    const detalhes = m[2].trim();
+    if (!detalhes) return;
+
+    const chave = prefixo + "|" + _deburr(detalhes);
+    if (vistos[chave]) return; // remove repetições (ex.: eco de "EM ABERTO")
+    vistos[chave] = true;
+
+    const tipo = _classificarTipo(detalhes);
+    if (tipo) registros.push({ prefixo: prefixo, detalhes: detalhes, tipo: tipo });
+    else ignoradas.push({ prefixo: prefixo, detalhes: detalhes });
+  });
+
+  return JSON.stringify({
+    data: data,
+    operador: operador,
+    plantonista: plantonista,
+    opcoes: opcoes,
+    registros: registros,
+    ignoradas: ignoradas,
+  });
+}
+
+// ------------------------
+// 8. Leitura de print (imagem) via OCR do Google Drive (gratuito)
+// ------------------------
+// OCR gratuito via Google Drive (sem chave/cota/cartão): cria um Google Doc
+// a partir da imagem (o Drive faz OCR na conversão), lê o texto e apaga o doc.
+function _ocrDrive(base64, mime) {
+  const blob = Utilities.newBlob(
+    Utilities.base64Decode(base64),
+    mime || "image/png",
+    "passagem",
+  );
+  const file = Drive.Files.create(
+    { name: "ocr-passagem-temp", mimeType: "application/vnd.google-apps.document" },
+    blob,
+    { ocrLanguage: "pt", fields: "id" },
+  );
+  let texto = "";
+  try {
+    texto = DocumentApp.openById(file.id).getBody().getText();
+  } finally {
+    try {
+      Drive.Files.remove(file.id);
+    } catch (e) {
+      Logger.log("Não consegui apagar o doc temporário de OCR: " + e);
+    }
+  }
+  return texto;
+}
+
+// Recebe a imagem (base64), faz OCR e devolve a MESMA prévia do texto,
+// com o campo extra "texto" (transcrição) para o front exibir/editar.
+function interpretarImagem(base64, mime) {
+  const texto = _ocrDrive(base64, mime);
+  const prev = JSON.parse(interpretarPassagem(texto));
+  prev.texto = texto;
+  return JSON.stringify(prev);
 }
